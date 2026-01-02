@@ -377,6 +377,7 @@ function loadCurrentEmail() {
       to: [],
       cc: [],
       date: item.dateTimeCreated ? new Date(item.dateTimeCreated).toLocaleString('da-DK') : '-',
+      dateISO: item.dateTimeCreated ? new Date(item.dateTimeCreated).toISOString() : new Date().toISOString(),
       body: '',
       messageId: item.internetMessageId || item.itemId,
       conversationId: item.conversationId || null
@@ -766,7 +767,7 @@ function logEmail() {
         to_emails: currentEmail.to,
         cc_emails: currentEmail.cc,
         html_body: currentEmail.body,
-        sent_at: currentEmail.date,
+        sent_at: currentEmail.dateISO,
         message_id: currentEmail.messageId,
         conversation_id: currentEmail.conversationId,
         lead_id: selectedEntity.type === 'leads' ? selectedEntity.id : null,
