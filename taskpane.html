@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=Edge">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HUB Email Logger</title>
+<script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Oxygen,Ubuntu,sans-serif;font-size:14px;line-height:1.5;color:#1a1a2e;background:#f8f9fa}
+#app{min-height:100vh;display:flex;flex-direction:column}
+.header{background:linear-gradient(135deg,#1a1a2e 0%,#16213e 100%);color:#fff;padding:16px;text-align:center}
+.header h1{font-size:18px;font-weight:600}
+.main{flex:1;padding:16px;display:flex;flex-direction:column;gap:16px}
+.loading{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px;gap:16px}
+.spinner{width:32px;height:32px;border:3px solid #e0e0e0;border-top-color:#1a1a2e;border-radius:50%;animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.hidden{display:none!important}
+.email-card{background:#fff;border-radius:8px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,.08);border:1px solid #e0e0e0}
+.email-header{font-size:15px;margin-bottom:12px;color:#1a1a2e;word-break:break-word}
+.email-meta{font-size:13px;color:#666;display:flex;flex-direction:column;gap:4px}
+.label{color:#888;font-weight:500}
+.attachments-section{margin-top:12px;padding-top:12px;border-top:1px solid #eee}
+.attachments-list{list-style:none;margin-top:8px;display:flex;flex-direction:column;gap:4px}
+.attachments-list li{font-size:12px;color:#666;padding:4px 8px;background:#f5f5f5;border-radius:4px}
+.search-section{display:flex;flex-direction:column;gap:12px}
+.search-input-wrapper{display:flex;gap:8px}
+#search-input{flex:1;padding:10px 12px;border:1px solid #ddd;border-radius:6px;font-size:14px}
+#search-input:focus{outline:none;border-color:#1a1a2e;box-shadow:0 0 0 2px rgba(26,26,46,.1)}
+.btn-search{padding:10px 16px;background:#1a1a2e;color:#fff;border:none;border-radius:6px;font-size:14px;font-weight:500;cursor:pointer;transition:background .2s}
+.btn-search:hover{background:#2a2a4e}
+.search-results{display:flex;flex-direction:column;gap:8px;max-height:200px;overflow-y:auto}
+.result-item{padding:12px;background:#fff;border:1px solid #e0e0e0;border-radius:6px;cursor:pointer;transition:all .2s}
+.result-item:hover{border-color:#1a1a2e;background:#fafafa}
+.result-item.selected{border-color:#1a1a2e;background:#f0f4ff}
+.result-item .name{font-weight:600;color:#1a1a2e}
+.result-item .meta{font-size:12px;color:#666;margin-top:4px}
+.result-item .badge{display:inline-block;padding:2px 8px;font-size:11px;font-weight:500;border-radius:4px;margin-left:8px}
+.badge.lead{background:#e8f4fd;color:#06c}
+.badge.booking{background:#e8fdf4;color:#094}
+.no-results{text-align:center;padding:20px;color:#888}
+.suggestion-header{font-size:12px;font-weight:600;color:#06c;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.result-item.suggested{border-color:#06c;background:#f0f8ff;border-width:2px}
+.suggestion-reason{font-size:11px;color:#06c;margin-top:6px;font-style:italic}
+.notes-section{display:flex;flex-direction:column;gap:8px}
+#notes-input{padding:10px 12px;border:1px solid #ddd;border-radius:6px;font-size:14px;font-family:inherit;resize:vertical}
+#notes-input:focus{outline:none;border-color:#1a1a2e}
+.action-section{margin-top:auto;display:flex;flex-direction:column;gap:12px}
+.selected-entity{padding:12px;background:#f0f4ff;border-radius:6px;font-size:13px;text-align:center}
+.action-buttons{display:flex;gap:8px}
+.btn-primary{flex:1;padding:14px;background:linear-gradient(135deg,#1a1a2e 0%,#16213e 100%);color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;transition:all .2s}
+.btn-primary:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 4px 12px rgba(26,26,46,.3)}
+.btn-primary:disabled{opacity:.5;cursor:not-allowed}
+.btn-primary.loading{pointer-events:none}
+.btn-secondary{flex:1;padding:14px;background:#fff;color:#1a1a2e;border:2px solid #1a1a2e;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;transition:all .2s}
+.btn-secondary:hover{background:#f0f4ff}
+.message-container{padding:12px;border-radius:6px;text-align:center;font-weight:500}
+.message-container.success{background:#d4edda;color:#155724;border:1px solid #c3e6cb}
+.message-container.error{background:#f8d7da;color:#721c24;border:1px solid #f5c6cb}
+.login-section{display:flex;flex-direction:column;gap:16px;padding:20px}
+.login-section h2{font-size:16px;color:#1a1a2e;text-align:center}
+.login-section p{font-size:13px;color:#666;text-align:center}
+.form-group{display:flex;flex-direction:column;gap:6px}
+.form-group label{font-size:13px;font-weight:500;color:#444}
+.form-group input{padding:12px;border:1px solid #ddd;border-radius:6px;font-size:14px}
+.form-group input:focus{outline:none;border-color:#1a1a2e;box-shadow:0 0 0 2px rgba(26,26,46,.1)}
+.user-info{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:#e8f4fd;border-radius:6px;font-size:13px}
+.user-info span{color:#06c;font-weight:500}
+.btn-logout{padding:6px 12px;background:transparent;border:1px solid #dc3545;color:#dc3545;border-radius:4px;font-size:12px;cursor:pointer}
+.btn-logout:hover{background:#dc3545;color:#fff}
+/* Logged emails section */
+.logged-emails-section{display:flex;flex-direction:column;gap:12px}
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.section-title{font-size:14px;font-weight:600;color:#1a1a2e}
+.btn-back{padding:6px 12px;background:transparent;border:1px solid #1a1a2e;color:#1a1a2e;border-radius:4px;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:4px}
+.btn-back:hover{background:#f0f4ff}
+.logged-emails-list{display:flex;flex-direction:column;gap:8px;max-height:400px;overflow-y:auto}
+.logged-email-item{padding:12px;background:#fff;border:1px solid #e0e0e0;border-radius:6px;transition:all .2s}
+.logged-email-item:hover{border-color:#1a1a2e;background:#fafafa}
+.email-subject-line{font-weight:600;color:#1a1a2e;font-size:13px;margin-bottom:4px}
+.email-sender{font-size:12px;color:#666}
+.email-date{font-size:11px;color:#888;margin-top:2px}
+.email-actions{display:flex;gap:8px;margin-top:8px;padding-top:8px;border-top:1px solid #eee}
+.action-btn{padding:6px 12px;background:#f5f5f5;border:1px solid #ddd;border-radius:4px;font-size:12px;cursor:pointer;transition:all .2s}
+.action-btn:hover{background:#e0e0e0;border-color:#bbb}
+.reply-btn:hover{background:#e8f4fd;border-color:#06c;color:#06c}
+.forward-btn:hover{background:#fff3e0;border-color:#f57c00;color:#f57c00}
+</style>
+</head>
+<body>
+<div id="app">
+<header class="header"><h1>Log til HUB</h1></header>
+<main class="main">
+<!-- Login Section -->
+<section id="login-section" class="login-section">
+<h2>Log ind for at fortsætte</h2>
+<p>Brug dine HUB login-oplysninger</p>
+<div class="form-group">
+<label for="login-email">Email</label>
+<input type="email" id="login-email" placeholder="din@email.dk" autocomplete="email"/>
+</div>
+<div class="form-group">
+<label for="login-password">Adgangskode</label>
+<input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password"/>
+</div>
+<button id="btn-login" class="btn-primary">Log ind</button>
+<div id="login-error" class="message-container error hidden"></div>
+</section>
+
+<!-- Main App (hidden until logged in) -->
+<div id="app-content" class="hidden">
+<div id="user-info" class="user-info">
+<span id="user-email">-</span>
+<button id="btn-logout" class="btn-logout">Log ud</button>
+</div>
+
+<div id="loading" class="loading"><div class="spinner"></div><p>Indlæser email...</p></div>
+<section id="email-preview" class="email-preview hidden">
+<div class="email-card">
+<div class="email-header"><strong id="email-subject">-</strong></div>
+<div class="email-meta">
+<div><span class="label">Fra:</span> <span id="email-from">-</span></div>
+<div><span class="label">Til:</span> <span id="email-to">-</span></div>
+<div><span class="label">Dato:</span> <span id="email-date">-</span></div>
+</div>
+<div id="attachments-section" class="attachments-section hidden">
+<span class="label">Vedhæftninger:</span>
+<ul id="attachments-list" class="attachments-list"></ul>
+</div>
+</div>
+</section>
+<section id="search-section" class="search-section hidden">
+<div class="search-input-wrapper">
+<input type="text" id="search-input" placeholder="Søg efter navn, email, nummer..." autocomplete="off"/>
+<button id="btn-search" class="btn-search">Søg</button>
+</div>
+<div id="search-results" class="search-results"></div>
+</section>
+<section id="notes-section" class="notes-section hidden">
+<label for="notes-input" class="label">Noter (valgfrit):</label>
+<textarea id="notes-input" placeholder="Tilføj eventuelle noter til denne email..." rows="3"></textarea>
+</section>
+<section id="action-section" class="action-section hidden">
+<div id="selected-entity" class="selected-entity"></div>
+<div class="action-buttons">
+<button id="btn-log-email" class="btn-primary" disabled>Log Email</button>
+<button id="btn-view-emails" class="btn-secondary hidden">📧 Se emails</button>
+</div>
+</section>
+
+<!-- Logged Emails Section (hidden by default) -->
+<section id="logged-emails-section" class="logged-emails-section hidden">
+<div class="section-header">
+<span class="section-title">Loggede emails på sagen</span>
+<button id="btn-back-to-search" class="btn-back">← Tilbage</button>
+</div>
+<div id="logged-emails-list" class="logged-emails-list"></div>
+</section>
+
+<div id="message-container" class="message-container hidden"></div>
+</div>
+</main>
+</div>
+<script src="taskpane.js"></script>
+</body>
+</html>
