@@ -9,6 +9,7 @@ let selectedEntity = null;
 let attachments = [];
 let currentUser = null;
 let viewingLoggedEmails = false;
+let pendingMFA = null; // For storing MFA data during verification
 
 // DOM Elements
 const elements = {};
@@ -22,11 +23,16 @@ Office.onReady(function(info) {
 
 function initializeElements() {
   elements.loginSection = document.getElementById('login-section');
+  elements.mfaSection = document.getElementById('mfa-section');
   elements.appContent = document.getElementById('app-content');
   elements.loginEmail = document.getElementById('login-email');
   elements.loginPassword = document.getElementById('login-password');
   elements.btnLogin = document.getElementById('btn-login');
   elements.loginError = document.getElementById('login-error');
+  elements.mfaCode = document.getElementById('mfa-code');
+  elements.btnVerifyMfa = document.getElementById('btn-verify-mfa');
+  elements.btnCancelMfa = document.getElementById('btn-cancel-mfa');
+  elements.mfaError = document.getElementById('mfa-error');
   elements.userInfo = document.getElementById('user-info');
   elements.userEmail = document.getElementById('user-email');
   elements.btnLogout = document.getElementById('btn-logout');
@@ -59,6 +65,19 @@ function initializeElements() {
     if (e.key === 'Enter') handleLogin();
   });
   elements.btnLogout.addEventListener('click', handleLogout);
+
+  // MFA handlers
+  if (elements.btnVerifyMfa) {
+    elements.btnVerifyMfa.addEventListener('click', handleMFAVerification);
+  }
+  if (elements.btnCancelMfa) {
+    elements.btnCancelMfa.addEventListener('click', cancelMFA);
+  }
+  if (elements.mfaCode) {
+    elements.mfaCode.addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') handleMFAVerification();
+    });
+  }
 
   // Search handlers
   elements.btnSearch.addEventListener('click', performSearch);
@@ -127,9 +146,17 @@ function handleLogin() {
     }
     return response.json();
   })
-  .then(function() {
-    // Store user info
-    currentUser = { email: email, password: password };
+  .then(function(data) {
+    // Check if MFA is required
+    if (data.mfaRequired) {
+      console.log('MFA required, showing MFA screen');
+      pendingMFA = { email: email, password: password, factorId: data.factorId };
+      showMFASection();
+      return;
+    }
+    
+    // Store user info (without mfaVerified flag if no MFA)
+    currentUser = { email: email, password: password, mfaVerified: true };
     localStorage.setItem('hub_outlook_user', JSON.stringify(currentUser));
     showMainApp();
   })
@@ -143,6 +170,90 @@ function handleLogin() {
   });
 }
 
+function showMFASection() {
+  elements.loginSection.classList.add('hidden');
+  elements.mfaSection.classList.remove('hidden');
+  elements.mfaCode.value = '';
+  elements.mfaError.classList.add('hidden');
+  elements.mfaCode.focus();
+}
+
+function cancelMFA() {
+  pendingMFA = null;
+  elements.mfaSection.classList.add('hidden');
+  elements.loginSection.classList.remove('hidden');
+  elements.mfaCode.value = '';
+}
+
+function handleMFAVerification() {
+  var code = elements.mfaCode.value.trim();
+  
+  if (!code || code.length !== 6) {
+    showMFAError('Indtast en 6-cifret kode');
+    return;
+  }
+  
+  if (!pendingMFA) {
+    showMFAError('Session udløbet - prøv igen');
+    cancelMFA();
+    return;
+  }
+  
+  elements.btnVerifyMfa.disabled = true;
+  elements.btnVerifyMfa.textContent = 'Bekræfter...';
+  elements.mfaError.classList.add('hidden');
+  
+  // Verify MFA code via edge function
+  fetch(CONFIG.SUPABASE_URL + '/functions/v1/verify-mfa', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ' + CONFIG.SUPABASE_ANON_KEY
+    },
+    body: JSON.stringify({
+      email: pendingMFA.email,
+      password: pendingMFA.password,
+      factorId: pendingMFA.factorId,
+      code: code
+    })
+  })
+  .then(function(response) {
+    if (!response.ok) {
+      throw new Error('Ugyldig kode - prøv igen');
+    }
+    return response.json();
+  })
+  .then(function(data) {
+    if (data.error) {
+      throw new Error(data.error);
+    }
+    
+    // MFA verified successfully
+    currentUser = { 
+      email: pendingMFA.email, 
+      password: pendingMFA.password, 
+      mfaVerified: true 
+    };
+    localStorage.setItem('hub_outlook_user', JSON.stringify(currentUser));
+    pendingMFA = null;
+    elements.mfaSection.classList.add('hidden');
+    showMainApp();
+  })
+  .catch(function(error) {
+    console.error('MFA error:', error);
+    showMFAError(error.message);
+  })
+  .finally(function() {
+    elements.btnVerifyMfa.disabled = false;
+    elements.btnVerifyMfa.textContent = 'Bekræft';
+  });
+}
+
+function showMFAError(message) {
+  elements.mfaError.textContent = message;
+  elements.mfaError.classList.remove('hidden');
+}
+
 function showLoginError(message) {
   elements.loginError.textContent = message;
   elements.loginError.classList.remove('hidden');
@@ -150,16 +261,20 @@ function showLoginError(message) {
 
 function handleLogout() {
   currentUser = null;
+  pendingMFA = null;
   localStorage.removeItem('hub_outlook_user');
   elements.loginSection.classList.remove('hidden');
+  elements.mfaSection.classList.add('hidden');
   elements.appContent.classList.add('hidden');
   elements.loginEmail.value = '';
   elements.loginPassword.value = '';
+  elements.mfaCode.value = '';
   elements.loginError.classList.add('hidden');
 }
 
 function showMainApp() {
   elements.loginSection.classList.add('hidden');
+  elements.mfaSection.classList.add('hidden');
   elements.appContent.classList.remove('hidden');
   elements.userEmail.textContent = currentUser.email;
   loadCurrentEmail();

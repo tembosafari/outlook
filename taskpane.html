@@ -108,6 +108,19 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Oxygen,Ubunt
 <div id="login-error" class="message-container error hidden"></div>
 </section>
 
+<!-- MFA Section (hidden until needed) -->
+<section id="mfa-section" class="login-section hidden">
+<h2>🔐 To-faktor godkendelse</h2>
+<p>Indtast koden fra din authenticator app</p>
+<div class="form-group">
+<label for="mfa-code">Bekræftelseskode</label>
+<input type="text" id="mfa-code" placeholder="000000" maxlength="6" autocomplete="one-time-code" inputmode="numeric" pattern="[0-9]*"/>
+</div>
+<button id="btn-verify-mfa" class="btn-primary">Bekræft</button>
+<button id="btn-cancel-mfa" class="btn-secondary" style="margin-top:8px">Annuller</button>
+<div id="mfa-error" class="message-container error hidden"></div>
+</section>
+
 <!-- Main App (hidden until logged in) -->
 <div id="app-content" class="hidden">
 <div id="user-info" class="user-info">
