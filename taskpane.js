@@ -171,12 +171,12 @@ function handleLogin() {
   var password = elements.loginPassword.value;
 
   if (!email || !password) {
-    showLoginError('Indtast email og adgangskode');
+    showLoginError('Enter email and password');
     return;
   }
 
   elements.btnLogin.disabled = true;
-  elements.btnLogin.textContent = 'Logger ind...';
+  elements.btnLogin.textContent = 'Signing in...';
   elements.loginError.classList.add('hidden');
 
   // Verify credentials via edge function
@@ -197,9 +197,9 @@ function handleLogin() {
   .then(function(response) {
     if (!response.ok) {
       if (response.status === 401) {
-        throw new Error('Forkert email eller adgangskode');
+        throw new Error('Incorrect email or password');
       }
-      throw new Error('Login fejlede');
+      throw new Error('Login failed');
     }
     return response.json();
   })
@@ -223,7 +223,7 @@ function handleLogin() {
   })
   .finally(function() {
     elements.btnLogin.disabled = false;
-    elements.btnLogin.textContent = 'Log ind';
+    elements.btnLogin.textContent = 'Sign in';
   });
 }
 
@@ -246,18 +246,18 @@ function handleMFAVerification() {
   var code = elements.mfaCode.value.trim();
   
   if (!code || code.length !== 6) {
-    showMFAError('Indtast en 6-cifret kode');
+    showMFAError('Enter a 6-digit code');
     return;
   }
   
   if (!pendingMFA) {
-    showMFAError('Session udløbet - prøv igen');
+    showMFAError('Session expired - please try again');
     cancelMFA();
     return;
   }
   
   elements.btnVerifyMfa.disabled = true;
-  elements.btnVerifyMfa.textContent = 'Bekræfter...';
+  elements.btnVerifyMfa.textContent = 'Verifying...';
   elements.mfaError.classList.add('hidden');
   
   // Verify MFA code via edge function
@@ -276,7 +276,7 @@ function handleMFAVerification() {
   })
   .then(function(response) {
     if (!response.ok) {
-      throw new Error('Ugyldig kode - prøv igen');
+      throw new Error('Invalid code - please try again');
     }
     return response.json();
   })
@@ -302,7 +302,7 @@ function handleMFAVerification() {
   })
   .finally(function() {
     elements.btnVerifyMfa.disabled = false;
-    elements.btnVerifyMfa.textContent = 'Bekræft';
+    elements.btnVerifyMfa.textContent = 'Verify';
   });
 }
 
@@ -345,7 +345,7 @@ function checkForSuggestions() {
   
   if (!currentUser || !currentUser.email || !currentUser.password) {
     console.log('No user credentials for suggestions');
-    elements.searchResults.innerHTML = '<div class="no-results">Søg efter lead eller booking</div>';
+    elements.searchResults.innerHTML = '<div class="no-results">Search for lead or booking</div>';
     return;
   }
   
@@ -377,12 +377,12 @@ function checkForSuggestions() {
     if (data && data.suggestion) {
       displaySuggestion(data.suggestion);
     } else {
-      elements.searchResults.innerHTML = '<div class="no-results">Søg efter lead eller booking</div>';
+      elements.searchResults.innerHTML = '<div class="no-results">Search for lead or booking</div>';
     }
   })
   .catch(function(error) {
     console.error('Suggestion error:', error);
-    elements.searchResults.innerHTML = '<div class="no-results">Søg efter lead eller booking</div>';
+    elements.searchResults.innerHTML = '<div class="no-results">Search for lead or booking</div>';
   });
 }
 
@@ -391,14 +391,14 @@ function displaySuggestion(suggestion) {
   var isLead = suggestion.type === 'leads';
   var badgeClass = isLead ? 'lead' : 'booking';
   var badgeText = isLead ? 'Lead' : 'Booking';
-  var displayName = entity.customer_name || entity.name || 'Ukendt';
+  var displayName = entity.customer_name || entity.name || 'Unknown';
   
   var meta = [];
   if (entity.email || entity.customer_email) meta.push(entity.email || entity.customer_email);
   if (entity.destination) meta.push(entity.destination);
   if (entity.booking_number) meta.push('#' + entity.booking_number);
   
-  var html = '<div class="suggestion-header">📌 Foreslået baseret på tidligere emails:</div>' +
+  var html = '<div class="suggestion-header">📌 Suggested based on previous emails:</div>' +
     '<div class="result-item suggested" data-id="' + entity.id + '" data-type="' + suggestion.type + '" data-name="' + displayName + '">' +
     '<div class="name">' + displayName + '<span class="badge ' + badgeClass + '">' + badgeText + '</span></div>' +
     (meta.length > 0 ? '<div class="meta">' + meta.join(' • ') + '</div>' : '') +
@@ -424,16 +424,16 @@ function loadCurrentEmail() {
   try {
     var item = Office.context.mailbox.item;
     if (!item) {
-      showMessage('Ingen email valgt', 'error');
+      showMessage('No email selected', 'error');
       return;
     }
     
     currentEmail = {
-      subject: item.subject || '(Intet emne)',
+      subject: item.subject || '(No subject)',
       from: '',
       to: [],
       cc: [],
-      date: item.dateTimeCreated ? new Date(item.dateTimeCreated).toLocaleString('da-DK') : '-',
+      date: item.dateTimeCreated ? new Date(item.dateTimeCreated).toLocaleString('en-GB') : '-',
       dateISO: item.dateTimeCreated ? formatDateForDatabase(new Date(item.dateTimeCreated)) : formatDateForDatabase(new Date()),
       body: '',
       messageId: item.internetMessageId || item.itemId,
@@ -476,7 +476,7 @@ function loadCurrentEmail() {
     updateEmailPreview();
   } catch (error) {
     console.error('Error loading email:', error);
-    showMessage('Kunne ikke indlæse email: ' + error.message, 'error');
+    showMessage('Could not load email: ' + error.message, 'error');
   }
 }
 
@@ -512,7 +512,7 @@ function formatFileSize(bytes) {
 function performSearch() {
   var query = elements.searchInput.value.trim();
   if (!query) {
-    elements.searchResults.innerHTML = '<div class="no-results">Indtast søgeord</div>';
+    elements.searchResults.innerHTML = '<div class="no-results">Enter search term</div>';
     return;
   }
   
@@ -536,9 +536,9 @@ function performSearch() {
     if (!response.ok) {
       if (response.status === 401) {
         handleLogout();
-        throw new Error('Session udløbet - log ind igen');
+        throw new Error('Session expired - please sign in again');
       }
-      throw new Error('Søgning fejlede');
+      throw new Error('Search failed');
     }
     return response.json();
   })
@@ -561,13 +561,13 @@ function performSearch() {
   })
   .catch(function(error) {
     console.error('Search error:', error);
-    elements.searchResults.innerHTML = '<div class="no-results">Fejl: ' + error.message + '</div>';
+    elements.searchResults.innerHTML = '<div class="no-results">Error: ' + error.message + '</div>';
   });
 }
 
 function displaySearchResults(results) {
   if (results.length === 0) {
-    elements.searchResults.innerHTML = '<div class="no-results">Ingen resultater fundet</div>';
+    elements.searchResults.innerHTML = '<div class="no-results">No results found</div>';
     return;
   }
   
@@ -575,7 +575,7 @@ function displaySearchResults(results) {
     var isLead = result._type === 'leads';
     var badgeClass = isLead ? 'lead' : 'booking';
     var badgeText = isLead ? 'Lead' : 'Booking';
-    var displayName = result.customer_name || result.name || 'Ukendt';
+    var displayName = result.customer_name || result.name || 'Unknown';
     
     var meta = [];
     if (result.email || result.customer_email) meta.push(result.email || result.customer_email);
@@ -632,7 +632,7 @@ function updateActionSection() {
   if (selectedEntity) {
     elements.actionSection.classList.remove('hidden');
     var typeLabel = selectedEntity.type === 'leads' ? 'Lead' : 'Booking';
-    elements.selectedEntity.textContent = 'Valgt: ' + selectedEntity.name + ' (' + typeLabel + ')';
+    elements.selectedEntity.textContent = 'Selected: ' + selectedEntity.name + ' (' + typeLabel + ')';
     elements.btnLogEmail.disabled = false;
     if (elements.btnAddTask) {
       elements.btnAddTask.disabled = false;
@@ -656,7 +656,7 @@ function updateActionSection() {
 
 function openTaskModal() {
   if (!selectedEntity) {
-    showMessage('Vælg venligst et lead eller booking først', 'error');
+    showMessage('Please select a lead or booking first', 'error');
     return;
   }
   
@@ -679,13 +679,13 @@ function closeTaskModal() {
 
 function saveTask() {
   if (!selectedEntity) {
-    showMessage('Vælg venligst et lead eller booking først', 'error');
+    showMessage('Please select a lead or booking first', 'error');
     closeTaskModal();
     return;
   }
   
   if (!currentUser || !currentUser.email || !currentUser.password) {
-    showMessage('Session udløbet - log ind igen', 'error');
+    showMessage('Session expired - please sign in again', 'error');
     handleLogout();
     return;
   }
@@ -696,7 +696,7 @@ function saveTask() {
   var taskNote = elements.taskNote.value.trim();
   
   if (!taskDate) {
-    showMessage('Vælg venligst en dato', 'error');
+    showMessage('Please select a date', 'error');
     return;
   }
   
@@ -704,7 +704,7 @@ function saveTask() {
   var reminderDatetime = taskDate + 'T' + taskTime + ':00';
   
   elements.btnSaveTask.disabled = true;
-  elements.btnSaveTask.textContent = 'Gemmer...';
+  elements.btnSaveTask.textContent = 'Saving...';
   
   var payload = {
     email: currentUser.email,
@@ -730,24 +730,24 @@ function saveTask() {
   .then(function(response) {
     if (!response.ok) {
       return response.json().then(function(err) {
-        throw new Error(err.error || 'Kunne ikke oprette task');
+        throw new Error(err.error || 'Could not create task');
       });
     }
     return response.json();
   })
   .then(function(data) {
     console.log('Task created:', data);
-    showMessage('Task oprettet!', 'success');
+    showMessage('Task created!', 'success');
     closeTaskModal();
     setTimeout(hideMessage, 3000);
   })
   .catch(function(error) {
     console.error('Create task error:', error);
-    showMessage('Fejl: ' + error.message, 'error');
+    showMessage('Error: ' + error.message, 'error');
   })
   .finally(function() {
     elements.btnSaveTask.disabled = false;
-    elements.btnSaveTask.textContent = 'Gem Task';
+    elements.btnSaveTask.textContent = 'Save Task';
   });
 }
 
@@ -782,7 +782,7 @@ function loadLoggedEmails() {
     })
   })
   .then(function(response) {
-    if (!response.ok) throw new Error('Kunne ikke hente emails');
+    if (!response.ok) throw new Error('Could not fetch emails');
     return response.json();
   })
   .then(function(data) {
@@ -790,18 +790,18 @@ function loadLoggedEmails() {
   })
   .catch(function(error) {
     console.error('Error loading logged emails:', error);
-    elements.loggedEmailsList.innerHTML = '<div class="no-results">Fejl: ' + error.message + '</div>';
+    elements.loggedEmailsList.innerHTML = '<div class="no-results">Error: ' + error.message + '</div>';
   });
 }
 
 function displayLoggedEmails(emails) {
   if (emails.length === 0) {
-    elements.loggedEmailsList.innerHTML = '<div class="no-results">Ingen loggede emails på denne sag</div>';
+    elements.loggedEmailsList.innerHTML = '<div class="no-results">No logged emails on this case</div>';
     return;
   }
   
-  var html = emails.map(function(email) {
-    var date = email.received_at ? new Date(email.received_at).toLocaleDateString('da-DK', {
+  var html = emails.map(function(email, index) {
+    var date = email.received_at ? new Date(email.received_at).toLocaleDateString('en-GB', {
       day: '2-digit',
       month: 'short',
       year: 'numeric',
@@ -811,73 +811,154 @@ function displayLoggedEmails(emails) {
     
     var attachmentIcon = email.has_attachments ? ' 📎' : '';
     
-    return '<div class="logged-email-item" data-message-id="' + (email.outlook_message_id || '') + '" data-conversation-id="' + (email.conversation_id || '') + '">' +
-      '<div class="email-subject-line">' + (email.subject || '(Intet emne)') + attachmentIcon + '</div>' +
-      '<div class="email-sender">' + (email.sender_name || email.sender_email || 'Ukendt') + '</div>' +
+    // Get email body - prefer text, fallback to html stripped
+    var bodyContent = email.body_text || '';
+    if (!bodyContent && email.body_html) {
+      var tempDiv = document.createElement('div');
+      tempDiv.innerHTML = email.body_html;
+      bodyContent = tempDiv.textContent || tempDiv.innerText || '';
+    }
+    // Truncate body for preview
+    var bodyPreview = bodyContent.substring(0, 500);
+    if (bodyContent.length > 500) bodyPreview += '...';
+    
+    var toRecipients = Array.isArray(email.recipient_emails) ? email.recipient_emails.join(', ') : (email.to_emails || '');
+    
+    return '<div class="logged-email-item" data-email-index="' + index + '">' +
+      '<div class="email-subject-line">' + escapeHtml(email.subject || '(No subject)') + attachmentIcon + '</div>' +
+      '<div class="email-sender">From: ' + escapeHtml(email.sender_name || email.sender_email || email.from_email || 'Unknown') + '</div>' +
       '<div class="email-date">' + date + '</div>' +
-      '<div class="email-actions">' +
-        '<button class="action-btn reply-btn" title="Besvar">↩️ Besvar</button>' +
-        '<button class="action-btn forward-btn" title="Videresend">➡️ Videresend</button>' +
+      '<div class="expand-hint">Click to view content ▼</div>' +
+      '<div class="email-body-preview">' +
+        '<div class="email-meta">' +
+          '<div><strong>From:</strong> ' + escapeHtml(email.sender_name || email.sender_email || email.from_email || '-') + '</div>' +
+          '<div><strong>To:</strong> ' + escapeHtml(toRecipients || '-') + '</div>' +
+          '<div><strong>Date:</strong> ' + date + '</div>' +
+        '</div>' +
+        '<div class="email-body-content">' + escapeHtml(bodyPreview || '(No content)') + '</div>' +
+        '<div class="email-actions">' +
+          '<button class="action-btn reply-btn" title="Reply">↩️ Reply</button>' +
+          '<button class="action-btn forward-btn" title="Forward">➡️ Forward</button>' +
+        '</div>' +
       '</div>' +
     '</div>';
   }).join('');
   
+  // Store emails for reply/forward
+  window.loggedEmailsData = emails;
+  
   elements.loggedEmailsList.innerHTML = html;
   
-  // Add click handlers for actions
+  // Add click handlers for expand/collapse and actions
   var items = elements.loggedEmailsList.querySelectorAll('.logged-email-item');
   items.forEach(function(item) {
+    var emailIndex = parseInt(item.getAttribute('data-email-index'), 10);
+    var emailData = window.loggedEmailsData[emailIndex];
+    
+    // Click on item to expand/collapse
+    item.addEventListener('click', function(e) {
+      // Don't toggle if clicking on a button
+      if (e.target.closest('.action-btn')) return;
+      item.classList.toggle('expanded');
+      var hint = item.querySelector('.expand-hint');
+      if (hint) {
+        hint.textContent = item.classList.contains('expanded') ? 'Click to hide ▲' : 'Click to view content ▼';
+      }
+    });
+    
     var replyBtn = item.querySelector('.reply-btn');
     var forwardBtn = item.querySelector('.forward-btn');
-    var conversationId = item.getAttribute('data-conversation-id');
-    var messageId = item.getAttribute('data-message-id');
-    var subject = item.querySelector('.email-subject-line').textContent;
-    var sender = item.querySelector('.email-sender').textContent;
     
     if (replyBtn) {
       replyBtn.addEventListener('click', function(e) {
         e.stopPropagation();
-        composeReply(sender, subject, messageId);
+        composeReply(emailData);
       });
     }
     
     if (forwardBtn) {
       forwardBtn.addEventListener('click', function(e) {
         e.stopPropagation();
-        composeForward(subject, messageId);
+        composeForward(emailData);
       });
     }
   });
 }
 
-function composeReply(toEmail, subject, messageId) {
+function escapeHtml(text) {
+  if (!text) return '';
+  var div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+function composeReply(emailData) {
   try {
-    // Create reply using Office.js
+    var subject = emailData.subject || '';
     var replySubject = subject.startsWith('Re:') ? subject : 'Re: ' + subject;
+    var toEmail = emailData.from_email || emailData.sender_email || '';
+    
+    // Build reply body with original email quoted
+    var originalDate = emailData.received_at ? new Date(emailData.received_at).toLocaleString('en-GB') : '';
+    var originalFrom = emailData.sender_name || emailData.from_email || 'Unknown';
+    var originalBody = emailData.body_text || emailData.body_html || '';
+    
+    // Strip HTML if we only have HTML body
+    if (!emailData.body_text && emailData.body_html) {
+      var tempDiv = document.createElement('div');
+      tempDiv.innerHTML = emailData.body_html;
+      originalBody = tempDiv.textContent || tempDiv.innerText || '';
+    }
+    
+    var replyBody = '\n\n\n-------- Original message --------\n' +
+      'From: ' + originalFrom + '\n' +
+      'Date: ' + originalDate + '\n' +
+      'Subject: ' + subject + '\n\n' +
+      originalBody;
     
     Office.context.mailbox.displayNewMessageForm({
       toRecipients: [toEmail],
       subject: replySubject,
-      body: ''
+      body: replyBody
     });
   } catch (error) {
     console.error('Error composing reply:', error);
-    showMessage('Kunne ikke åbne svar-vindue', 'error');
+    showMessage('Could not open reply window', 'error');
   }
 }
 
-function composeForward(subject, messageId) {
+function composeForward(emailData) {
   try {
-    // Create forward using Office.js
+    var subject = emailData.subject || '';
     var fwdSubject = subject.startsWith('Fwd:') || subject.startsWith('Fw:') ? subject : 'Fwd: ' + subject;
+    
+    // Build forward body with original email
+    var originalDate = emailData.received_at ? new Date(emailData.received_at).toLocaleString('en-GB') : '';
+    var originalFrom = emailData.sender_name || emailData.from_email || 'Unknown';
+    var originalTo = emailData.to_emails || '';
+    var originalBody = emailData.body_text || emailData.body_html || '';
+    
+    // Strip HTML if we only have HTML body
+    if (!emailData.body_text && emailData.body_html) {
+      var tempDiv = document.createElement('div');
+      tempDiv.innerHTML = emailData.body_html;
+      originalBody = tempDiv.textContent || tempDiv.innerText || '';
+    }
+    
+    var forwardBody = '\n\n\n-------- Forwarded message --------\n' +
+      'From: ' + originalFrom + '\n' +
+      'Date: ' + originalDate + '\n' +
+      'To: ' + originalTo + '\n' +
+      'Subject: ' + subject + '\n\n' +
+      originalBody;
     
     Office.context.mailbox.displayNewMessageForm({
       subject: fwdSubject,
-      body: ''
+      body: forwardBody
     });
   } catch (error) {
     console.error('Error composing forward:', error);
-    showMessage('Kunne ikke åbne videresend-vindue', 'error');
+    showMessage('Could not open forward window', 'error');
   }
 }
 
@@ -893,12 +974,12 @@ function backToSearch() {
 
 function logEmail() {
   if (!currentEmail || !selectedEntity) {
-    showMessage('Vælg venligst et lead eller booking først', 'error');
+    showMessage('Please select a lead or booking first', 'error');
     return;
   }
   
   if (!currentUser || !currentUser.email || !currentUser.password) {
-    showMessage('Session udløbet - log ind igen', 'error');
+    showMessage('Session expired - please sign in again', 'error');
     handleLogout();
     return;
   }
@@ -910,7 +991,7 @@ function logEmail() {
   });
   
   elements.btnLogEmail.disabled = true;
-  elements.btnLogEmail.textContent = 'Logger...';
+  elements.btnLogEmail.textContent = 'Logging...';
   elements.btnLogEmail.classList.add('loading');
   
   var attachmentPromises = [];
@@ -962,15 +1043,19 @@ function logEmail() {
       });
     })
     .then(function(response) {
-      if (!response.ok) {
-        return response.json().then(function(err) {
-          throw new Error(err.error || 'Kunne ikke logge email');
-        });
-      }
-      return response.json();
+      return response.json().then(function(data) {
+        if (!response.ok) {
+          // Check for duplicate error
+          if (response.status === 409 && data.duplicate) {
+            throw new Error('This email is already logged on this case');
+          }
+          throw new Error(data.error || 'Could not log email');
+        }
+        return data;
+      });
     })
     .then(function(data) {
-      showMessage('Email logget succesfuldt!', 'success');
+      showMessage('Email logged successfully!', 'success');
       setTimeout(function() {
         elements.notesInput.value = '';
         selectedEntity = null;
@@ -982,7 +1067,7 @@ function logEmail() {
     })
     .catch(function(error) {
       console.error('Log email error:', error);
-      showMessage('Fejl: ' + error.message, 'error');
+      showMessage('Error: ' + error.message, 'error');
     })
     .finally(function() {
       elements.btnLogEmail.disabled = false;

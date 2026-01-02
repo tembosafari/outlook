@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="da">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta http-equiv="X-UA-Compatible" content="IE=Edge">
@@ -373,11 +373,38 @@ body {
   border: 1px solid var(--border);
   border-radius: 8px;
   transition: all 0.2s;
+  cursor: pointer;
 }
 .logged-email-item:hover { border-color: var(--gold-light); background: var(--cream); }
+.logged-email-item.expanded { border-color: var(--gold); }
 .email-subject-line { font-weight: 600; color: var(--text-primary); font-size: 12px; margin-bottom: 4px; line-height: 1.4; }
 .email-sender { font-size: 11px; color: var(--text-secondary); }
 .email-date { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+.email-body-preview {
+  display: none;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+.logged-email-item.expanded .email-body-preview { display: block; }
+.email-body-content {
+  font-size: 12px;
+  color: var(--text-primary);
+  line-height: 1.6;
+  max-height: 300px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  background: var(--cream);
+  padding: 12px;
+  border-radius: 6px;
+  margin-bottom: 10px;
+}
+.email-meta {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+.email-meta strong { color: var(--text-secondary); }
 .email-actions { display: flex; gap: 8px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
 .action-btn {
   padding: 6px 12px;
@@ -392,6 +419,7 @@ body {
 .action-btn:hover { background: var(--cream-dark); }
 .reply-btn:hover { background: #e3f0fc; border-color: #1a6bb8; color: #1a6bb8; }
 .forward-btn:hover { background: rgba(176,158,111,0.12); border-color: var(--gold); color: var(--gold-dark); }
+.expand-hint { font-size: 10px; color: var(--text-muted); margin-top: 6px; font-style: italic; }
 
 /* Task modal */
 .modal-overlay {
@@ -454,35 +482,35 @@ body {
 <div id="app">
 <header class="header">
   <div class="header-logo">H</div>
-  <h1>Log til HUB</h1>
+  <h1>Log to HUB</h1>
 </header>
 <main class="main">
 <!-- Login Section -->
 <section id="login-section" class="login-section">
-<h2>Log ind for at fortsætte</h2>
-<p>Brug dine HUB login-oplysninger</p>
+<h2>Sign in to continue</h2>
+<p>Use your HUB login credentials</p>
 <div class="form-group">
 <label for="login-email">Email</label>
-<input type="email" id="login-email" placeholder="din@email.dk" autocomplete="email"/>
+<input type="email" id="login-email" placeholder="your@email.com" autocomplete="email"/>
 </div>
 <div class="form-group">
-<label for="login-password">Adgangskode</label>
+<label for="login-password">Password</label>
 <input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password"/>
 </div>
-<button id="btn-login" class="btn-primary">Log ind</button>
+<button id="btn-login" class="btn-primary">Sign in</button>
 <div id="login-error" class="message-container error hidden"></div>
 </section>
 
 <!-- MFA Section -->
 <section id="mfa-section" class="login-section hidden">
-<h2>🔐 To-faktor godkendelse</h2>
-<p>Indtast koden fra din authenticator app</p>
+<h2>🔐 Two-factor authentication</h2>
+<p>Enter the code from your authenticator app</p>
 <div class="form-group">
-<label for="mfa-code">Bekræftelseskode</label>
+<label for="mfa-code">Verification code</label>
 <input type="text" id="mfa-code" placeholder="000000" maxlength="6" autocomplete="one-time-code" inputmode="numeric" pattern="[0-9]*"/>
 </div>
-<button id="btn-verify-mfa" class="btn-primary">Bekræft</button>
-<button id="btn-cancel-mfa" class="btn-secondary" style="margin-top:8px">Annuller</button>
+<button id="btn-verify-mfa" class="btn-primary">Verify</button>
+<button id="btn-cancel-mfa" class="btn-secondary" style="margin-top:8px">Cancel</button>
 <div id="mfa-error" class="message-container error hidden"></div>
 </section>
 
@@ -490,51 +518,51 @@ body {
 <div id="app-content" class="hidden">
 <div id="user-info" class="user-info">
 <span id="user-email">-</span>
-<button id="btn-logout" class="btn-logout">Log ud</button>
+<button id="btn-logout" class="btn-logout">Sign out</button>
 </div>
 
-<div id="loading" class="loading"><div class="spinner"></div><p>Indlæser email...</p></div>
+<div id="loading" class="loading"><div class="spinner"></div><p>Loading email...</p></div>
 <section id="email-preview" class="email-preview hidden">
 <div class="email-card">
 <div class="email-header"><strong id="email-subject">-</strong></div>
 <div class="email-meta">
-<div><span class="label">Fra:</span> <span id="email-from">-</span></div>
-<div><span class="label">Til:</span> <span id="email-to">-</span></div>
-<div><span class="label">Dato:</span> <span id="email-date">-</span></div>
+<div><span class="label">From:</span> <span id="email-from">-</span></div>
+<div><span class="label">To:</span> <span id="email-to">-</span></div>
+<div><span class="label">Date:</span> <span id="email-date">-</span></div>
 </div>
 <div id="attachments-section" class="attachments-section hidden">
-<span class="label">Vedhæftninger:</span>
+<span class="label">Attachments:</span>
 <ul id="attachments-list" class="attachments-list"></ul>
 </div>
 </div>
 </section>
 <section id="search-section" class="search-section hidden">
 <div class="search-input-wrapper">
-<input type="text" id="search-input" placeholder="Søg efter navn, email, nummer..." autocomplete="off"/>
-<button id="btn-search" class="btn-search">Søg</button>
+<input type="text" id="search-input" placeholder="Search by name, email, number..." autocomplete="off"/>
+<button id="btn-search" class="btn-search">Search</button>
 </div>
 <div id="search-results" class="search-results"></div>
 </section>
 <section id="notes-section" class="notes-section hidden">
-<label for="notes-input" class="label">Noter (valgfrit):</label>
-<textarea id="notes-input" placeholder="Tilføj eventuelle noter til denne email..." rows="3"></textarea>
+<label for="notes-input" class="label">Notes (optional):</label>
+<textarea id="notes-input" placeholder="Add any notes for this email..." rows="3"></textarea>
 </section>
 <section id="action-section" class="action-section hidden">
 <div id="selected-entity" class="selected-entity"></div>
 <div class="action-buttons">
 <button id="btn-log-email" class="btn-primary" disabled>📧 Log Email</button>
-<button id="btn-add-task" class="btn-task" disabled>📋 Opret Task</button>
+<button id="btn-add-task" class="btn-task" disabled>📋 Create Task</button>
 </div>
 <div class="action-buttons" style="margin-top:8px">
-<button id="btn-view-emails" class="btn-secondary hidden">📧 Se emails</button>
+<button id="btn-view-emails" class="btn-secondary hidden">📧 View emails</button>
 </div>
 </section>
 
 <!-- Logged Emails Section -->
 <section id="logged-emails-section" class="logged-emails-section hidden">
 <div class="section-header">
-<span class="section-title">Loggede emails på sagen</span>
-<button id="btn-back-to-search" class="btn-back">← Tilbage</button>
+<span class="section-title">Logged emails on this case</span>
+<button id="btn-back-to-search" class="btn-back">← Back</button>
 </div>
 <div id="logged-emails-list" class="logged-emails-list"></div>
 </section>
@@ -548,7 +576,7 @@ body {
 <div id="task-modal" class="modal-overlay hidden">
 <div class="modal-content">
 <div class="modal-header">
-<span class="modal-title">📋 Opret Task</span>
+<span class="modal-title">📋 Create Task</span>
 <button id="btn-close-modal" class="btn-close">×</button>
 </div>
 <div class="modal-body">
@@ -556,28 +584,28 @@ body {
 <label for="task-type">Type</label>
 <select id="task-type">
 <option value="task">Task</option>
-<option value="call">Ring op</option>
+<option value="call">Make call</option>
 <option value="email">Send email</option>
 <option value="sms">Send SMS</option>
-<option value="follow_up">Opfølgning</option>
+<option value="follow_up">Follow-up</option>
 </select>
 </div>
 <div class="form-group">
-<label for="task-date">Dato</label>
+<label for="task-date">Date</label>
 <input type="date" id="task-date"/>
 </div>
 <div class="form-group">
-<label for="task-time">Tidspunkt (valgfrit)</label>
+<label for="task-time">Time (optional)</label>
 <input type="time" id="task-time" value="09:00"/>
 </div>
 <div class="form-group">
-<label for="task-note">Beskrivelse</label>
-<textarea id="task-note" rows="3" placeholder="Beskriv hvad der skal gøres..."></textarea>
+<label for="task-note">Description</label>
+<textarea id="task-note" rows="3" placeholder="Describe what needs to be done..."></textarea>
 </div>
 </div>
 <div class="modal-footer">
-<button id="btn-cancel-task" class="btn-secondary">Annuller</button>
-<button id="btn-save-task" class="btn-primary">Gem Task</button>
+<button id="btn-cancel-task" class="btn-secondary">Cancel</button>
+<button id="btn-save-task" class="btn-primary">Save Task</button>
 </div>
 </div>
 </div>
