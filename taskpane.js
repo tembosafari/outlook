@@ -281,8 +281,18 @@ function showMainApp() {
 }
 
 function checkForSuggestions() {
-  if (!currentEmail || !currentEmail.from) return;
+  if (!currentEmail || !currentEmail.from) {
+    console.log('No email or sender for suggestions');
+    return;
+  }
   
+  if (!currentUser || !currentUser.email || !currentUser.password) {
+    console.log('No user credentials for suggestions');
+    elements.searchResults.innerHTML = '<div class="no-results">Søg efter lead eller booking</div>';
+    return;
+  }
+  
+  console.log('Checking for suggestions for sender:', currentEmail.from);
   elements.searchResults.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
   
   fetch(CONFIG.SUPABASE_URL + '/functions/v1/search-hub-entities', {
@@ -294,17 +304,19 @@ function checkForSuggestions() {
     body: JSON.stringify({ 
       query: '', 
       type: 'all',
-      email: currentUser ? currentUser.email : null,
-      password: currentUser ? currentUser.password : null,
-      mfaVerified: currentUser ? currentUser.mfaVerified : false,
+      email: currentUser.email,
+      password: currentUser.password,
+      mfaVerified: currentUser.mfaVerified || false,
       senderEmail: currentEmail.from
     })
   })
   .then(function(response) {
+    console.log('Suggestions response status:', response.status);
     if (!response.ok) return null;
     return response.json();
   })
   .then(function(data) {
+    console.log('Suggestions data:', data);
     if (data && data.suggestion) {
       displaySuggestion(data.suggestion);
     } else {
@@ -340,8 +352,12 @@ function displaySuggestion(suggestion) {
   
   var item = elements.searchResults.querySelector('.result-item');
   if (item) {
-    item.addEventListener('click', function() { selectEntity(this); });
-    item.addEventListener('dblclick', function() { selectEntityAndLog(this); });
+    item.addEventListener('click', function(e) { 
+      selectEntity(e.currentTarget); 
+    });
+    item.addEventListener('dblclick', function(e) { 
+      selectEntityAndLog(e.currentTarget); 
+    });
     // Auto-select the suggestion
     selectEntity(item);
   }
@@ -518,8 +534,14 @@ function displaySearchResults(results) {
   
   var items = elements.searchResults.querySelectorAll('.result-item');
   for (var i = 0; i < items.length; i++) {
-    items[i].addEventListener('click', function() { selectEntity(this); });
-    items[i].addEventListener('dblclick', function() { selectEntityAndLog(this); });
+    (function(item) {
+      item.addEventListener('click', function(e) { 
+        selectEntity(e.currentTarget); 
+      });
+      item.addEventListener('dblclick', function(e) { 
+        selectEntityAndLog(e.currentTarget); 
+      });
+    })(items[i]);
   }
 }
 
@@ -590,7 +612,8 @@ function loadLoggedEmails() {
       entityId: selectedEntity.id,
       entityType: entityType,
       email: currentUser ? currentUser.email : null,
-      password: currentUser ? currentUser.password : null
+      password: currentUser ? currentUser.password : null,
+      mfaVerified: currentUser ? currentUser.mfaVerified : false
     })
   })
   .then(function(response) {
@@ -707,6 +730,18 @@ function logEmail() {
     return;
   }
   
+  if (!currentUser || !currentUser.email || !currentUser.password) {
+    showMessage('Session udløbet - log ind igen', 'error');
+    handleLogout();
+    return;
+  }
+  
+  console.log('Logging email with credentials:', { 
+    hasEmail: !!currentUser.email, 
+    hasPassword: !!currentUser.password,
+    entity: selectedEntity
+  });
+  
   elements.btnLogEmail.disabled = true;
   elements.btnLogEmail.textContent = 'Logger...';
   elements.btnLogEmail.classList.add('loading');
@@ -721,10 +756,10 @@ function logEmail() {
   Promise.all(attachmentPromises)
     .then(function(attachmentData) {
       var payload = {
-        // Auth credentials
-        email: currentUser ? currentUser.email : null,
-        password: currentUser ? currentUser.password : null,
-        mfaVerified: currentUser ? currentUser.mfaVerified : false,
+        // Auth credentials - MUST be first and always present
+        email: currentUser.email,
+        password: currentUser.password,
+        mfaVerified: currentUser.mfaVerified || false,
         // Email data
         subject: currentEmail.subject,
         from_email: currentEmail.from,
@@ -737,8 +772,18 @@ function logEmail() {
         lead_id: selectedEntity.type === 'leads' ? selectedEntity.id : null,
         tour_booking_id: selectedEntity.type === 'bookings' ? selectedEntity.id : null,
         notes: elements.notesInput.value.trim() || null,
-        attachments: attachmentData.filter(function(a) { return a !== null; })
+        // Attachments with correct field names matching edge function
+        attachments: attachmentData.filter(function(a) { return a !== null; }).map(function(att) {
+          return {
+            fileName: att.name,
+            contentType: att.content_type,
+            content: att.content_base64,
+            size: att.size
+          };
+        })
       };
+      
+      console.log('Sending payload with keys:', Object.keys(payload));
       
       return fetch(CONFIG.SUPABASE_URL + '/functions/v1/log-outlook-email', {
         method: 'POST',
@@ -755,6 +800,9 @@ function logEmail() {
           throw new Error(err.error || 'Kunne ikke logge email');
         });
       }
+      return response.json();
+    })
+    .then(function(data) {
       showMessage('Email logget succesfuldt!', 'success');
       setTimeout(function() {
         elements.notesInput.value = '';
