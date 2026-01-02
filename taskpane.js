@@ -296,6 +296,7 @@ function checkForSuggestions() {
       type: 'all',
       email: currentUser ? currentUser.email : null,
       password: currentUser ? currentUser.password : null,
+      mfaVerified: currentUser ? currentUser.mfaVerified : false,
       senderEmail: currentEmail.from
     })
   })
@@ -452,7 +453,8 @@ function performSearch() {
       query: query, 
       type: 'all',
       email: currentUser ? currentUser.email : null,
-      password: currentUser ? currentUser.password : null
+      password: currentUser ? currentUser.password : null,
+      mfaVerified: currentUser ? currentUser.mfaVerified : false
     })
   })
   .then(function(response) {
