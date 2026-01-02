@@ -11,8 +11,8 @@
   <DefaultLocale>en-US</DefaultLocale>
   <DisplayName DefaultValue="HUB Email Logger"/>
   <Description DefaultValue="Log emails to leads and bookings in HUB Travel system"/>
-  <IconUrl DefaultValue="https://xaecuidoqzbrdpqqivpl.supabase.co/storage/v1/object/public/outlook-addin/icon64.png"/>
-  <HighResolutionIconUrl DefaultValue="https://xaecuidoqzbrdpqqivpl.supabase.co/storage/v1/object/public/outlook-addin/icon128.png"/>
+  <IconUrl DefaultValue="https://tembosafari.github.io/outlook//icon64.png"/>
+  <HighResolutionIconUrl DefaultValue="https://tembosafari.github.io/outlook//icon128.png"/>
   <SupportUrl DefaultValue="https://hubtravel.dk"/>
   <Hosts>
     <Host Name="Mailbox"/>
@@ -25,7 +25,7 @@
   <FormSettings>
     <Form xsi:type="ItemRead">
       <DesktopSettings>
-        <SourceLocation DefaultValue="https://xaecuidoqzbrdpqqivpl.supabase.co/functions/v1/serve-outlook-addin/taskpane.html?v=1767374757319"/>
+        <SourceLocation DefaultValue="https://tembosafari.github.io/outlook//taskpane.html?v=1767374757319"/>
         <RequestedHeight>450</RequestedHeight>
       </DesktopSettings>
     </Form>
@@ -73,13 +73,13 @@
     </Hosts>
     <Resources>
       <bt:Images>
-        <bt:Image id="Icon.16x16" DefaultValue="https://xaecuidoqzbrdpqqivpl.supabase.co/storage/v1/object/public/outlook-addin/icon16.png"/>
-        <bt:Image id="Icon.32x32" DefaultValue="https://xaecuidoqzbrdpqqivpl.supabase.co/storage/v1/object/public/outlook-addin/icon32.png"/>
-        <bt:Image id="Icon.80x80" DefaultValue="https://xaecuidoqzbrdpqqivpl.supabase.co/storage/v1/object/public/outlook-addin/icon80.png"/>
+        <bt:Image id="Icon.16x16" DefaultValue="https://tembosafari.github.io/outlook/icon16.png"/>
+        <bt:Image id="Icon.32x32" DefaultValue="https://tembosafari.github.io/outlook/icon32.png"/>
+        <bt:Image id="Icon.80x80" DefaultValue="https://tembosafari.github.io/outlook/icon80.png"/>
       </bt:Images>
       <bt:Urls>
-        <bt:Url id="FunctionFile.Url" DefaultValue="https://xaecuidoqzbrdpqqivpl.supabase.co/functions/v1/serve-outlook-addin/function-file.html?v=1767374757319"/>
-        <bt:Url id="Taskpane.Url" DefaultValue="https://xaecuidoqzbrdpqqivpl.supabase.co/functions/v1/serve-outlook-addin/taskpane.html?v=1767374757319"/>
+        <bt:Url id="FunctionFile.Url" DefaultValue="https://tembosafari.github.io/outlook/function-file.html?v=1767374757319"/>
+        <bt:Url id="Taskpane.Url" DefaultValue="https://tembosafari.github.io/outlook/taskpane.html?v=1767374757319"/>
       </bt:Urls>
       <bt:ShortStrings>
         <bt:String id="GroupLabel" DefaultValue="HUB"/>
@@ -128,13 +128,13 @@
       </Hosts>
       <Resources>
         <bt:Images>
-        <bt:Image id="Icon.16x16" DefaultValue="https://xaecuidoqzbrdpqqivpl.supabase.co/storage/v1/object/public/outlook-addin/icon16.png"/>
-        <bt:Image id="Icon.32x32" DefaultValue="https://xaecuidoqzbrdpqqivpl.supabase.co/storage/v1/object/public/outlook-addin/icon32.png"/>
-        <bt:Image id="Icon.80x80" DefaultValue="https://xaecuidoqzbrdpqqivpl.supabase.co/storage/v1/object/public/outlook-addin/icon80.png"/>
+        <bt:Image id="Icon.16x16" DefaultValue="https://tembosafari.github.io/outlook/icon16.png"/>
+        <bt:Image id="Icon.32x32" DefaultValue="https://tembosafari.github.io/outlook/icon32.png"/>
+        <bt:Image id="Icon.80x80" DefaultValue="https://tembosafari.github.io/outlook/icon80.png"/>
         </bt:Images>
         <bt:Urls>
-          <bt:Url id="FunctionFile.Url" DefaultValue="https://xaecuidoqzbrdpqqivpl.supabase.co/functions/v1/serve-outlook-addin/function-file.html?v=1767374757319"/>
-          <bt:Url id="Taskpane.Url" DefaultValue="https://xaecuidoqzbrdpqqivpl.supabase.co/functions/v1/serve-outlook-addin/taskpane.html?v=1767374757319"/>
+          <bt:Url id="FunctionFile.Url" DefaultValue="https://tembosafari.github.io/outlook/function-file.html?v=1767374757319"/>
+          <bt:Url id="Taskpane.Url" DefaultValue="https://tembosafari.github.io/outlook/taskpane.html?v=1767374757319"/>
         </bt:Urls>
         <bt:ShortStrings>
           <bt:String id="GroupLabel" DefaultValue="HUB"/>
