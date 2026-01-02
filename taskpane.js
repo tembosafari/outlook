@@ -38,6 +38,26 @@ Office.onReady(function(info) {
   if (info.host === Office.HostType.Outlook) {
     initializeElements();
     checkStoredLogin();
+    
+    // Register ItemChanged event for pinned taskpane support
+    // When pinned, the taskpane stays open when user switches emails
+    Office.context.mailbox.addHandlerAsync(
+      Office.EventType.ItemChanged,
+      function(eventArgs) {
+        // Refresh the current email when user selects a different email
+        if (currentUser) {
+          loadCurrentEmail();
+          // Reset selection state when email changes
+          selectedEntity = null;
+          viewingLoggedEmails = false;
+          if (elements.searchInput) elements.searchInput.value = '';
+          if (elements.searchResults) elements.searchResults.innerHTML = '';
+          if (elements.selectedEntity) elements.selectedEntity.classList.add('hidden');
+          if (elements.actionSection) elements.actionSection.classList.add('hidden');
+          if (elements.loggedEmailsSection) elements.loggedEmailsSection.classList.add('hidden');
+        }
+      }
+    );
   }
 });
 
