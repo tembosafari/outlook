@@ -9,7 +9,6 @@ let selectedEntity = null;
 let attachments = [];
 let currentUser = null;
 let viewingLoggedEmails = false;
-let pendingMFA = null; // For storing MFA data during verification
 
 // DOM Elements
 const elements = {};
@@ -23,16 +22,11 @@ Office.onReady(function(info) {
 
 function initializeElements() {
   elements.loginSection = document.getElementById('login-section');
-  elements.mfaSection = document.getElementById('mfa-section');
   elements.appContent = document.getElementById('app-content');
   elements.loginEmail = document.getElementById('login-email');
   elements.loginPassword = document.getElementById('login-password');
   elements.btnLogin = document.getElementById('btn-login');
   elements.loginError = document.getElementById('login-error');
-  elements.mfaCode = document.getElementById('mfa-code');
-  elements.btnVerifyMfa = document.getElementById('btn-verify-mfa');
-  elements.btnCancelMfa = document.getElementById('btn-cancel-mfa');
-  elements.mfaError = document.getElementById('mfa-error');
   elements.userInfo = document.getElementById('user-info');
   elements.userEmail = document.getElementById('user-email');
   elements.btnLogout = document.getElementById('btn-logout');
@@ -65,19 +59,6 @@ function initializeElements() {
     if (e.key === 'Enter') handleLogin();
   });
   elements.btnLogout.addEventListener('click', handleLogout);
-
-  // MFA handlers
-  if (elements.btnVerifyMfa) {
-    elements.btnVerifyMfa.addEventListener('click', handleMFAVerification);
-  }
-  if (elements.btnCancelMfa) {
-    elements.btnCancelMfa.addEventListener('click', cancelMFA);
-  }
-  if (elements.mfaCode) {
-    elements.mfaCode.addEventListener('keypress', function(e) {
-      if (e.key === 'Enter') handleMFAVerification();
-    });
-  }
 
   // Search handlers
   elements.btnSearch.addEventListener('click', performSearch);
@@ -146,17 +127,9 @@ function handleLogin() {
     }
     return response.json();
   })
-  .then(function(data) {
-    // Check if MFA is required
-    if (data.mfaRequired) {
-      console.log('MFA required, showing MFA screen');
-      pendingMFA = { email: email, password: password, factorId: data.factorId };
-      showMFASection();
-      return;
-    }
-    
-    // Store user info (without mfaVerified flag if no MFA)
-    currentUser = { email: email, password: password, mfaVerified: true };
+  .then(function() {
+    // Store user info
+    currentUser = { email: email, password: password };
     localStorage.setItem('hub_outlook_user', JSON.stringify(currentUser));
     showMainApp();
   })
@@ -170,90 +143,6 @@ function handleLogin() {
   });
 }
 
-function showMFASection() {
-  elements.loginSection.classList.add('hidden');
-  elements.mfaSection.classList.remove('hidden');
-  elements.mfaCode.value = '';
-  elements.mfaError.classList.add('hidden');
-  elements.mfaCode.focus();
-}
-
-function cancelMFA() {
-  pendingMFA = null;
-  elements.mfaSection.classList.add('hidden');
-  elements.loginSection.classList.remove('hidden');
-  elements.mfaCode.value = '';
-}
-
-function handleMFAVerification() {
-  var code = elements.mfaCode.value.trim();
-  
-  if (!code || code.length !== 6) {
-    showMFAError('Indtast en 6-cifret kode');
-    return;
-  }
-  
-  if (!pendingMFA) {
-    showMFAError('Session udløbet - prøv igen');
-    cancelMFA();
-    return;
-  }
-  
-  elements.btnVerifyMfa.disabled = true;
-  elements.btnVerifyMfa.textContent = 'Bekræfter...';
-  elements.mfaError.classList.add('hidden');
-  
-  // Verify MFA code via edge function
-  fetch(CONFIG.SUPABASE_URL + '/functions/v1/verify-mfa', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer ' + CONFIG.SUPABASE_ANON_KEY
-    },
-    body: JSON.stringify({
-      email: pendingMFA.email,
-      password: pendingMFA.password,
-      factorId: pendingMFA.factorId,
-      code: code
-    })
-  })
-  .then(function(response) {
-    if (!response.ok) {
-      throw new Error('Ugyldig kode - prøv igen');
-    }
-    return response.json();
-  })
-  .then(function(data) {
-    if (data.error) {
-      throw new Error(data.error);
-    }
-    
-    // MFA verified successfully
-    currentUser = { 
-      email: pendingMFA.email, 
-      password: pendingMFA.password, 
-      mfaVerified: true 
-    };
-    localStorage.setItem('hub_outlook_user', JSON.stringify(currentUser));
-    pendingMFA = null;
-    elements.mfaSection.classList.add('hidden');
-    showMainApp();
-  })
-  .catch(function(error) {
-    console.error('MFA error:', error);
-    showMFAError(error.message);
-  })
-  .finally(function() {
-    elements.btnVerifyMfa.disabled = false;
-    elements.btnVerifyMfa.textContent = 'Bekræft';
-  });
-}
-
-function showMFAError(message) {
-  elements.mfaError.textContent = message;
-  elements.mfaError.classList.remove('hidden');
-}
-
 function showLoginError(message) {
   elements.loginError.textContent = message;
   elements.loginError.classList.remove('hidden');
@@ -261,38 +150,24 @@ function showLoginError(message) {
 
 function handleLogout() {
   currentUser = null;
-  pendingMFA = null;
   localStorage.removeItem('hub_outlook_user');
   elements.loginSection.classList.remove('hidden');
-  elements.mfaSection.classList.add('hidden');
   elements.appContent.classList.add('hidden');
   elements.loginEmail.value = '';
   elements.loginPassword.value = '';
-  elements.mfaCode.value = '';
   elements.loginError.classList.add('hidden');
 }
 
 function showMainApp() {
   elements.loginSection.classList.add('hidden');
-  elements.mfaSection.classList.add('hidden');
   elements.appContent.classList.remove('hidden');
   elements.userEmail.textContent = currentUser.email;
   loadCurrentEmail();
 }
 
 function checkForSuggestions() {
-  if (!currentEmail || !currentEmail.from) {
-    console.log('No email or sender for suggestions');
-    return;
-  }
+  if (!currentEmail || !currentEmail.from) return;
   
-  if (!currentUser || !currentUser.email || !currentUser.password) {
-    console.log('No user credentials for suggestions');
-    elements.searchResults.innerHTML = '<div class="no-results">Søg efter lead eller booking</div>';
-    return;
-  }
-  
-  console.log('Checking for suggestions for sender:', currentEmail.from);
   elements.searchResults.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
   
   fetch(CONFIG.SUPABASE_URL + '/functions/v1/search-hub-entities', {
@@ -304,19 +179,16 @@ function checkForSuggestions() {
     body: JSON.stringify({ 
       query: '', 
       type: 'all',
-      email: currentUser.email,
-      password: currentUser.password,
-      mfaVerified: currentUser.mfaVerified || false,
+      email: currentUser ? currentUser.email : null,
+      password: currentUser ? currentUser.password : null,
       senderEmail: currentEmail.from
     })
   })
   .then(function(response) {
-    console.log('Suggestions response status:', response.status);
     if (!response.ok) return null;
     return response.json();
   })
   .then(function(data) {
-    console.log('Suggestions data:', data);
     if (data && data.suggestion) {
       displaySuggestion(data.suggestion);
     } else {
@@ -352,12 +224,7 @@ function displaySuggestion(suggestion) {
   
   var item = elements.searchResults.querySelector('.result-item');
   if (item) {
-    item.addEventListener('click', function(e) { 
-      selectEntity(e.currentTarget); 
-    });
-    item.addEventListener('dblclick', function(e) { 
-      selectEntityAndLog(e.currentTarget); 
-    });
+    item.addEventListener('click', function() { selectEntity(this); });
     // Auto-select the suggestion
     selectEntity(item);
   }
@@ -377,7 +244,6 @@ function loadCurrentEmail() {
       to: [],
       cc: [],
       date: item.dateTimeCreated ? new Date(item.dateTimeCreated).toLocaleString('da-DK') : '-',
-      dateISO: item.dateTimeCreated ? new Date(item.dateTimeCreated).toISOString() : new Date().toISOString(),
       body: '',
       messageId: item.internetMessageId || item.itemId,
       conversationId: item.conversationId || null
@@ -471,8 +337,7 @@ function performSearch() {
       query: query, 
       type: 'all',
       email: currentUser ? currentUser.email : null,
-      password: currentUser ? currentUser.password : null,
-      mfaVerified: currentUser ? currentUser.mfaVerified : false
+      password: currentUser ? currentUser.password : null
     })
   })
   .then(function(response) {
@@ -535,14 +400,7 @@ function displaySearchResults(results) {
   
   var items = elements.searchResults.querySelectorAll('.result-item');
   for (var i = 0; i < items.length; i++) {
-    (function(item) {
-      item.addEventListener('click', function(e) { 
-        selectEntity(e.currentTarget); 
-      });
-      item.addEventListener('dblclick', function(e) { 
-        selectEntityAndLog(e.currentTarget); 
-      });
-    })(items[i]);
+    items[i].addEventListener('click', function() { selectEntity(this); });
   }
 }
 
@@ -560,15 +418,6 @@ function selectEntity(element) {
   };
   
   updateActionSection();
-}
-
-// Double-click handler - select and immediately log
-function selectEntityAndLog(element) {
-  selectEntity(element);
-  // Small delay to ensure selection is processed
-  setTimeout(function() {
-    logEmail();
-  }, 100);
 }
 
 function updateActionSection() {
@@ -613,8 +462,7 @@ function loadLoggedEmails() {
       entityId: selectedEntity.id,
       entityType: entityType,
       email: currentUser ? currentUser.email : null,
-      password: currentUser ? currentUser.password : null,
-      mfaVerified: currentUser ? currentUser.mfaVerified : false
+      password: currentUser ? currentUser.password : null
     })
   })
   .then(function(response) {
@@ -731,18 +579,6 @@ function logEmail() {
     return;
   }
   
-  if (!currentUser || !currentUser.email || !currentUser.password) {
-    showMessage('Session udløbet - log ind igen', 'error');
-    handleLogout();
-    return;
-  }
-  
-  console.log('Logging email with credentials:', { 
-    hasEmail: !!currentUser.email, 
-    hasPassword: !!currentUser.password,
-    entity: selectedEntity
-  });
-  
   elements.btnLogEmail.disabled = true;
   elements.btnLogEmail.textContent = 'Logger...';
   elements.btnLogEmail.classList.add('loading');
@@ -757,34 +593,19 @@ function logEmail() {
   Promise.all(attachmentPromises)
     .then(function(attachmentData) {
       var payload = {
-        // Auth credentials - MUST be first and always present
-        email: currentUser.email,
-        password: currentUser.password,
-        mfaVerified: currentUser.mfaVerified || false,
-        // Email data
         subject: currentEmail.subject,
         from_email: currentEmail.from,
         to_emails: currentEmail.to,
         cc_emails: currentEmail.cc,
         html_body: currentEmail.body,
-        sent_at: currentEmail.dateISO,
+        sent_at: currentEmail.date,
         message_id: currentEmail.messageId,
         conversation_id: currentEmail.conversationId,
         lead_id: selectedEntity.type === 'leads' ? selectedEntity.id : null,
         tour_booking_id: selectedEntity.type === 'bookings' ? selectedEntity.id : null,
         notes: elements.notesInput.value.trim() || null,
-        // Attachments with correct field names matching edge function
-        attachments: attachmentData.filter(function(a) { return a !== null; }).map(function(att) {
-          return {
-            fileName: att.name,
-            contentType: att.content_type,
-            content: att.content_base64,
-            size: att.size
-          };
-        })
+        attachments: attachmentData.filter(function(a) { return a !== null; })
       };
-      
-      console.log('Sending payload with keys:', Object.keys(payload));
       
       return fetch(CONFIG.SUPABASE_URL + '/functions/v1/log-outlook-email', {
         method: 'POST',
@@ -801,9 +622,6 @@ function logEmail() {
           throw new Error(err.error || 'Kunne ikke logge email');
         });
       }
-      return response.json();
-    })
-    .then(function(data) {
       showMessage('Email logget succesfuldt!', 'success');
       setTimeout(function() {
         elements.notesInput.value = '';
