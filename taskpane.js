@@ -78,6 +78,17 @@ function initializeElements() {
   elements.loggedEmailsSection = document.getElementById('logged-emails-section');
   elements.loggedEmailsList = document.getElementById('logged-emails-list');
   elements.btnBackToSearch = document.getElementById('btn-back-to-search');
+  
+  // Task elements
+  elements.btnAddTask = document.getElementById('btn-add-task');
+  elements.taskModal = document.getElementById('task-modal');
+  elements.btnCloseModal = document.getElementById('btn-close-modal');
+  elements.btnCancelTask = document.getElementById('btn-cancel-task');
+  elements.btnSaveTask = document.getElementById('btn-save-task');
+  elements.taskType = document.getElementById('task-type');
+  elements.taskDate = document.getElementById('task-date');
+  elements.taskTime = document.getElementById('task-time');
+  elements.taskNote = document.getElementById('task-note');
 
   // Login handlers
   elements.btnLogin.addEventListener('click', handleLogin);
@@ -114,6 +125,32 @@ function initializeElements() {
   // Back button
   if (elements.btnBackToSearch) {
     elements.btnBackToSearch.addEventListener('click', backToSearch);
+  }
+  
+  // Task handlers
+  if (elements.btnAddTask) {
+    elements.btnAddTask.addEventListener('click', openTaskModal);
+  }
+  if (elements.btnCloseModal) {
+    elements.btnCloseModal.addEventListener('click', closeTaskModal);
+  }
+  if (elements.btnCancelTask) {
+    elements.btnCancelTask.addEventListener('click', closeTaskModal);
+  }
+  if (elements.btnSaveTask) {
+    elements.btnSaveTask.addEventListener('click', saveTask);
+  }
+  if (elements.taskModal) {
+    elements.taskModal.addEventListener('click', function(e) {
+      if (e.target === elements.taskModal) closeTaskModal();
+    });
+  }
+  
+  // Set default date to tomorrow
+  if (elements.taskDate) {
+    var tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    elements.taskDate.value = tomorrow.toISOString().split('T')[0];
   }
 }
 
@@ -597,17 +634,124 @@ function updateActionSection() {
     var typeLabel = selectedEntity.type === 'leads' ? 'Lead' : 'Booking';
     elements.selectedEntity.textContent = 'Valgt: ' + selectedEntity.name + ' (' + typeLabel + ')';
     elements.btnLogEmail.disabled = false;
+    if (elements.btnAddTask) {
+      elements.btnAddTask.disabled = false;
+    }
     if (elements.btnViewEmails) {
       elements.btnViewEmails.classList.remove('hidden');
     }
   } else {
     elements.actionSection.classList.add('hidden');
     elements.btnLogEmail.disabled = true;
+    if (elements.btnAddTask) {
+      elements.btnAddTask.disabled = true;
+    }
     if (elements.btnViewEmails) {
       elements.btnViewEmails.classList.add('hidden');
     }
   }
 }
+
+// ==================== TASK FUNCTIONS ====================
+
+function openTaskModal() {
+  if (!selectedEntity) {
+    showMessage('Vælg venligst et lead eller booking først', 'error');
+    return;
+  }
+  
+  // Reset form
+  elements.taskType.value = 'task';
+  elements.taskNote.value = '';
+  
+  // Set default date to tomorrow
+  var tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  elements.taskDate.value = tomorrow.toISOString().split('T')[0];
+  elements.taskTime.value = '09:00';
+  
+  elements.taskModal.classList.remove('hidden');
+}
+
+function closeTaskModal() {
+  elements.taskModal.classList.add('hidden');
+}
+
+function saveTask() {
+  if (!selectedEntity) {
+    showMessage('Vælg venligst et lead eller booking først', 'error');
+    closeTaskModal();
+    return;
+  }
+  
+  if (!currentUser || !currentUser.email || !currentUser.password) {
+    showMessage('Session udløbet - log ind igen', 'error');
+    handleLogout();
+    return;
+  }
+  
+  var taskDate = elements.taskDate.value;
+  var taskTime = elements.taskTime.value || '09:00';
+  var taskType = elements.taskType.value;
+  var taskNote = elements.taskNote.value.trim();
+  
+  if (!taskDate) {
+    showMessage('Vælg venligst en dato', 'error');
+    return;
+  }
+  
+  // Combine date and time into ISO datetime
+  var reminderDatetime = taskDate + 'T' + taskTime + ':00';
+  
+  elements.btnSaveTask.disabled = true;
+  elements.btnSaveTask.textContent = 'Gemmer...';
+  
+  var payload = {
+    email: currentUser.email,
+    password: currentUser.password,
+    mfaVerified: currentUser.mfaVerified || false,
+    reminderDatetime: reminderDatetime,
+    actionType: taskType,
+    note: taskNote || null,
+    lead_id: selectedEntity.type === 'leads' ? selectedEntity.id : null,
+    tour_booking_id: selectedEntity.type === 'bookings' ? selectedEntity.id : null
+  };
+  
+  console.log('Creating task:', payload);
+  
+  fetch(CONFIG.SUPABASE_URL + '/functions/v1/create-outlook-reminder', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ' + CONFIG.SUPABASE_ANON_KEY
+    },
+    body: JSON.stringify(payload)
+  })
+  .then(function(response) {
+    if (!response.ok) {
+      return response.json().then(function(err) {
+        throw new Error(err.error || 'Kunne ikke oprette task');
+      });
+    }
+    return response.json();
+  })
+  .then(function(data) {
+    console.log('Task created:', data);
+    showMessage('Task oprettet!', 'success');
+    closeTaskModal();
+    setTimeout(hideMessage, 3000);
+  })
+  .catch(function(error) {
+    console.error('Create task error:', error);
+    showMessage('Fejl: ' + error.message, 'error');
+  })
+  .finally(function() {
+    elements.btnSaveTask.disabled = false;
+    elements.btnSaveTask.textContent = 'Gem Task';
+  });
+}
+
+// ==================== LOGGED EMAILS FUNCTIONS ====================
 
 function loadLoggedEmails() {
   if (!selectedEntity) return;
@@ -745,6 +889,8 @@ function backToSearch() {
   updateActionSection();
 }
 
+// ==================== EMAIL LOGGING ====================
+
 function logEmail() {
   if (!currentEmail || !selectedEntity) {
     showMessage('Vælg venligst et lead eller booking først', 'error');
@@ -840,7 +986,7 @@ function logEmail() {
     })
     .finally(function() {
       elements.btnLogEmail.disabled = false;
-      elements.btnLogEmail.textContent = 'Log Email';
+      elements.btnLogEmail.textContent = '📧 Log Email';
       elements.btnLogEmail.classList.remove('loading');
     });
 }

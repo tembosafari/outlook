@@ -48,13 +48,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Oxygen,Ubunt
 #notes-input:focus{outline:none;border-color:#1a1a2e}
 .action-section{margin-top:auto;display:flex;flex-direction:column;gap:12px}
 .selected-entity{padding:12px;background:#f0f4ff;border-radius:6px;font-size:13px;text-align:center}
-.action-buttons{display:flex;gap:8px}
-.btn-primary{flex:1;padding:14px;background:linear-gradient(135deg,#1a1a2e 0%,#16213e 100%);color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;transition:all .2s}
+.action-buttons{display:flex;gap:8px;flex-wrap:wrap}
+.btn-primary{flex:1;padding:14px;background:linear-gradient(135deg,#1a1a2e 0%,#16213e 100%);color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;transition:all .2s;min-width:120px}
 .btn-primary:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 4px 12px rgba(26,26,46,.3)}
 .btn-primary:disabled{opacity:.5;cursor:not-allowed}
 .btn-primary.loading{pointer-events:none}
-.btn-secondary{flex:1;padding:14px;background:#fff;color:#1a1a2e;border:2px solid #1a1a2e;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;transition:all .2s}
+.btn-secondary{flex:1;padding:14px;background:#fff;color:#1a1a2e;border:2px solid #1a1a2e;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;transition:all .2s;min-width:120px}
 .btn-secondary:hover{background:#f0f4ff}
+.btn-task{flex:1;padding:14px;background:#fff;color:#f57c00;border:2px solid #f57c00;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;transition:all .2s;min-width:120px}
+.btn-task:hover{background:#fff3e0}
 .message-container{padding:12px;border-radius:6px;text-align:center;font-weight:500}
 .message-container.success{background:#d4edda;color:#155724;border:1px solid #c3e6cb}
 .message-container.error{background:#f8d7da;color:#721c24;border:1px solid #f5c6cb}
@@ -63,8 +65,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Oxygen,Ubunt
 .login-section p{font-size:13px;color:#666;text-align:center}
 .form-group{display:flex;flex-direction:column;gap:6px}
 .form-group label{font-size:13px;font-weight:500;color:#444}
-.form-group input{padding:12px;border:1px solid #ddd;border-radius:6px;font-size:14px}
-.form-group input:focus{outline:none;border-color:#1a1a2e;box-shadow:0 0 0 2px rgba(26,26,46,.1)}
+.form-group input,.form-group select,.form-group textarea{padding:12px;border:1px solid #ddd;border-radius:6px;font-size:14px;font-family:inherit}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{outline:none;border-color:#1a1a2e;box-shadow:0 0 0 2px rgba(26,26,46,.1)}
 .user-info{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:#e8f4fd;border-radius:6px;font-size:13px}
 .user-info span{color:#06c;font-weight:500}
 .btn-logout{padding:6px 12px;background:transparent;border:1px solid #dc3545;color:#dc3545;border-radius:4px;font-size:12px;cursor:pointer}
@@ -86,6 +88,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Oxygen,Ubunt
 .action-btn:hover{background:#e0e0e0;border-color:#bbb}
 .reply-btn:hover{background:#e8f4fd;border-color:#06c;color:#06c}
 .forward-btn:hover{background:#fff3e0;border-color:#f57c00;color:#f57c00}
+/* Task modal */
+.modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:1000;padding:16px}
+.modal-content{background:#fff;border-radius:12px;padding:20px;width:100%;max-width:400px;max-height:90vh;overflow-y:auto;box-shadow:0 10px 40px rgba(0,0,0,0.2)}
+.modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.modal-title{font-size:16px;font-weight:600;color:#1a1a2e}
+.btn-close{width:32px;height:32px;border:none;background:#f5f5f5;border-radius:6px;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center}
+.btn-close:hover{background:#e0e0e0}
+.modal-body{display:flex;flex-direction:column;gap:16px}
+.modal-footer{display:flex;gap:8px;margin-top:16px}
 </style>
 </head>
 <body>
@@ -157,7 +168,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Oxygen,Ubunt
 <section id="action-section" class="action-section hidden">
 <div id="selected-entity" class="selected-entity"></div>
 <div class="action-buttons">
-<button id="btn-log-email" class="btn-primary" disabled>Log Email</button>
+<button id="btn-log-email" class="btn-primary" disabled>📧 Log Email</button>
+<button id="btn-add-task" class="btn-task" disabled>📋 Opret Task</button>
+</div>
+<div class="action-buttons" style="margin-top:8px">
 <button id="btn-view-emails" class="btn-secondary hidden">📧 Se emails</button>
 </div>
 </section>
@@ -175,6 +189,45 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Oxygen,Ubunt
 </div>
 </main>
 </div>
+
+<!-- Task Modal -->
+<div id="task-modal" class="modal-overlay hidden">
+<div class="modal-content">
+<div class="modal-header">
+<span class="modal-title">📋 Opret Task</span>
+<button id="btn-close-modal" class="btn-close">×</button>
+</div>
+<div class="modal-body">
+<div class="form-group">
+<label for="task-type">Type</label>
+<select id="task-type">
+<option value="task">Task</option>
+<option value="call">Ring op</option>
+<option value="email">Send email</option>
+<option value="sms">Send SMS</option>
+<option value="follow_up">Opfølgning</option>
+</select>
+</div>
+<div class="form-group">
+<label for="task-date">Dato</label>
+<input type="date" id="task-date"/>
+</div>
+<div class="form-group">
+<label for="task-time">Tidspunkt (valgfrit)</label>
+<input type="time" id="task-time" value="09:00"/>
+</div>
+<div class="form-group">
+<label for="task-note">Beskrivelse</label>
+<textarea id="task-note" rows="3" placeholder="Beskriv hvad der skal gøres..."></textarea>
+</div>
+</div>
+<div class="modal-footer">
+<button id="btn-cancel-task" class="btn-secondary">Annuller</button>
+<button id="btn-save-task" class="btn-primary">Gem Task</button>
+</div>
+</div>
+</div>
+
 <script src="taskpane.js"></script>
 </body>
 </html>
