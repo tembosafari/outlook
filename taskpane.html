@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=Edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HUB Email Logger</title>
+  <link rel="stylesheet" href="https://xaecuidoqzbrdpqqivpl.supabase.co/functions/v1/serve-outlook-addin/taskpane.css">
+  <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+</head>
+<body>
+  <div id="app">
+    <header class="header">
+      <h1>📧 Log til HUB</h1>
+    </header>
+    <main class="main">
+      <div id="loading" class="loading">
+        <div class="spinner"></div>
+        <p>Indlæser email...</p>
+      </div>
+      <section id="email-preview" class="email-preview hidden">
+        <div class="email-card">
+          <div class="email-header">
+            <strong id="email-subject">-</strong>
+          </div>
+          <div class="email-meta">
+            <div><span class="label">Fra:</span> <span id="email-from">-</span></div>
+            <div><span class="label">Til:</span> <span id="email-to">-</span></div>
+            <div><span class="label">Dato:</span> <span id="email-date">-</span></div>
+          </div>
+          <div id="attachments-section" class="attachments-section hidden">
+            <span class="label">📎 Vedhæftninger:</span>
+            <ul id="attachments-list" class="attachments-list"></ul>
+          </div>
+        </div>
+      </section>
+      <section id="search-section" class="search-section hidden">
+        <div class="search-type-toggle">
+          <button id="btn-search-leads" class="toggle-btn active">Leads</button>
+          <button id="btn-search-bookings" class="toggle-btn">Bookings</button>
+        </div>
+        <div class="search-input-wrapper">
+          <input type="text" id="search-input" placeholder="Søg efter navn, email eller nummer..." autocomplete="off"/>
+          <button id="btn-search" class="btn-search">Søg</button>
+        </div>
+        <div id="search-results" class="search-results"></div>
+      </section>
+      <section id="notes-section" class="notes-section hidden">
+        <label for="notes-input" class="label">Noter (valgfrit):</label>
+        <textarea id="notes-input" placeholder="Tilføj eventuelle noter til denne email..." rows="3"></textarea>
+      </section>
+      <section id="action-section" class="action-section hidden">
+        <div id="selected-entity" class="selected-entity"></div>
+        <button id="btn-log-email" class="btn-primary" disabled>Log Email</button>
+      </section>
+      <div id="message-container" class="message-container hidden"></div>
+    </main>
+  </div>
+  <script src="https://xaecuidoqzbrdpqqivpl.supabase.co/functions/v1/serve-outlook-addin/taskpane.js"></script>
+</body>
+</html>
