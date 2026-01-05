@@ -7,7 +7,7 @@
   xsi:type="MailApp">
 
   <Id>f7b8c9d0-e1f2-4a5b-8c7d-9e0f1a2b3c4d</Id>
-  <Version>1.0.21.0</Version>
+  <Version>1.0.22.0</Version>
   <ProviderName>Tembo Travel</ProviderName>
   <DefaultLocale>en-US</DefaultLocale>
   <DisplayName DefaultValue="HUB Email Logger"/>
@@ -61,7 +61,7 @@
         <DesktopFormFactor>
           <FunctionFile resid="FunctionFile.Url"/>
 
-          <!-- Message Read mode - for reading received emails -->
+          <!-- Message Read mode -->
           <ExtensionPoint xsi:type="MessageReadCommandSurface">
             <OfficeTab id="TabDefault">
               <Group id="msgReadGroup">
@@ -79,14 +79,13 @@
                   </Icon>
                   <Action xsi:type="ShowTaskpane">
                     <SourceLocation resid="Taskpane.Url"/>
-                    <SupportsPinning>true</SupportsPinning>
                   </Action>
                 </Control>
               </Group>
             </OfficeTab>
           </ExtensionPoint>
 
-          <!-- Message Compose mode - for drafting/replying to emails -->
+          <!-- Message Compose mode -->
           <ExtensionPoint xsi:type="MessageComposeCommandSurface">
             <OfficeTab id="TabDefault">
               <Group id="msgComposeGroup">
@@ -104,7 +103,6 @@
                   </Icon>
                   <Action xsi:type="ShowTaskpane">
                     <SourceLocation resid="Taskpane.Url"/>
-                    <SupportsPinning>true</SupportsPinning>
                   </Action>
                 </Control>
               </Group>
@@ -135,5 +133,94 @@
         <bt:String id="ComposeButton.Tooltip" DefaultValue="Mark this email to be logged to a lead or booking when sent"/>
       </bt:LongStrings>
     </Resources>
+
+    <!-- V1_1 overrides for SupportsPinning -->
+    <VersionOverrides xmlns="http://schemas.microsoft.com/office/mailappversionoverrides/1.1" xsi:type="VersionOverridesV1_1">
+      <Requirements>
+        <bt:Sets DefaultMinVersion="1.5">
+          <bt:Set Name="Mailbox"/>
+        </bt:Sets>
+      </Requirements>
+
+      <Hosts>
+        <Host xsi:type="MailHost">
+          <DesktopFormFactor>
+            <FunctionFile resid="FunctionFile.Url"/>
+
+            <!-- Message Read mode with pinning -->
+            <ExtensionPoint xsi:type="MessageReadCommandSurface">
+              <OfficeTab id="TabDefault">
+                <Group id="msgReadGroupV11">
+                  <Label resid="GroupLabel"/>
+                  <Control xsi:type="Button" id="msgReadOpenPaneButtonV11">
+                    <Label resid="TaskpaneButton.Label"/>
+                    <Supertip>
+                      <Title resid="TaskpaneButton.Label"/>
+                      <Description resid="TaskpaneButton.Tooltip"/>
+                    </Supertip>
+                    <Icon>
+                      <bt:Image size="16" resid="Icon.16x16"/>
+                      <bt:Image size="32" resid="Icon.32x32"/>
+                      <bt:Image size="80" resid="Icon.80x80"/>
+                    </Icon>
+                    <Action xsi:type="ShowTaskpane">
+                      <SourceLocation resid="Taskpane.Url"/>
+                      <SupportsPinning>true</SupportsPinning>
+                    </Action>
+                  </Control>
+                </Group>
+              </OfficeTab>
+            </ExtensionPoint>
+
+            <!-- Message Compose mode with pinning -->
+            <ExtensionPoint xsi:type="MessageComposeCommandSurface">
+              <OfficeTab id="TabDefault">
+                <Group id="msgComposeGroupV11">
+                  <Label resid="GroupLabel"/>
+                  <Control xsi:type="Button" id="msgComposeOpenPaneButtonV11">
+                    <Label resid="ComposeButton.Label"/>
+                    <Supertip>
+                      <Title resid="ComposeButton.Label"/>
+                      <Description resid="ComposeButton.Tooltip"/>
+                    </Supertip>
+                    <Icon>
+                      <bt:Image size="16" resid="Icon.16x16"/>
+                      <bt:Image size="32" resid="Icon.32x32"/>
+                      <bt:Image size="80" resid="Icon.80x80"/>
+                    </Icon>
+                    <Action xsi:type="ShowTaskpane">
+                      <SourceLocation resid="Taskpane.Url"/>
+                      <SupportsPinning>true</SupportsPinning>
+                    </Action>
+                  </Control>
+                </Group>
+              </OfficeTab>
+            </ExtensionPoint>
+
+          </DesktopFormFactor>
+        </Host>
+      </Hosts>
+
+      <Resources>
+        <bt:Images>
+          <bt:Image id="Icon.16x16" DefaultValue="https://tembosafari.github.io/outlook/icon16.png"/>
+          <bt:Image id="Icon.32x32" DefaultValue="https://tembosafari.github.io/outlook/icon32.png"/>
+          <bt:Image id="Icon.80x80" DefaultValue="https://tembosafari.github.io/outlook/icon80.png"/>
+        </bt:Images>
+        <bt:Urls>
+          <bt:Url id="FunctionFile.Url" DefaultValue="https://tembosafari.github.io/outlook/function-file.html"/>
+          <bt:Url id="Taskpane.Url" DefaultValue="https://tembosafari.github.io/outlook/taskpane.html"/>
+        </bt:Urls>
+        <bt:ShortStrings>
+          <bt:String id="GroupLabel" DefaultValue="HUB"/>
+          <bt:String id="TaskpaneButton.Label" DefaultValue="Log to HUB"/>
+          <bt:String id="ComposeButton.Label" DefaultValue="Log when sent"/>
+        </bt:ShortStrings>
+        <bt:LongStrings>
+          <bt:String id="TaskpaneButton.Tooltip" DefaultValue="Open HUB Email Logger to log this email to a lead or booking"/>
+          <bt:String id="ComposeButton.Tooltip" DefaultValue="Mark this email to be logged to a lead or booking when sent"/>
+        </bt:LongStrings>
+      </Resources>
+    </VersionOverrides>
   </VersionOverrides>
 </OfficeApp>
