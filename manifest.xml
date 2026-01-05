@@ -7,12 +7,12 @@
   xsi:type="MailApp">
 
   <Id>a1b2c3d4-e5f6-7890-abcd-ef1234567890</Id>
-  <Version>1.0.16.0</Version>
+  <Version>1.0.17.0</Version>
   <ProviderName>Tembo Travel</ProviderName>
   <DefaultLocale>da-DK</DefaultLocale>
   <DisplayName DefaultValue="HUB Email Logger"/>
   <Description DefaultValue="Log emails til leads og bookings i HUB systemet"/>
-  <IconUrl DefaultValue="https://tembosafari.github.io/outlook/icon80.png"/>
+  <IconUrl DefaultValue="https://tembosafari.github.io/outlook/icon32.png"/>
   <HighResolutionIconUrl DefaultValue="https://tembosafari.github.io/outlook/icon128.png"/>
 
   <SupportUrl DefaultValue="https://tembotravel.dk"/>
