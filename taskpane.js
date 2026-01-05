@@ -30,6 +30,8 @@ let attachments = [];
 let currentUser = null;
 let viewingLoggedEmails = false;
 let pendingMFA = null; // For storing MFA data during verification
+let isComposeMode = false; // Track if we're in compose mode
+let pendingLogOnSend = null; // Store entity to log when email is sent
 
 // DOM Elements
 const elements = {};
@@ -448,55 +450,184 @@ function loadCurrentEmail() {
       return;
     }
     
-    currentEmail = {
-      subject: item.subject || '(No subject)',
-      from: '',
-      to: [],
-      cc: [],
-      date: item.dateTimeCreated ? new Date(item.dateTimeCreated).toLocaleString('en-GB') : '-',
-      dateISO: item.dateTimeCreated ? formatDateForDatabase(new Date(item.dateTimeCreated)) : formatDateForDatabase(new Date()),
-      body: '',
-      messageId: item.internetMessageId || item.itemId,
-      conversationId: item.conversationId || null
-    };
+    // Detect if we're in compose mode (drafting/replying)
+    // In compose mode, item.itemType is 'message' but item.from is undefined
+    // and we use item.to.getAsync instead of item.to directly
+    isComposeMode = typeof item.to === 'object' && typeof item.to.getAsync === 'function';
     
-    if (item.from) {
-      currentEmail.from = item.from.emailAddress || item.from.displayName || '-';
+    console.log('Loading email, compose mode:', isComposeMode);
+    
+    if (isComposeMode) {
+      loadComposeEmail(item);
+    } else {
+      loadReadEmail(item);
     }
-    
-    if (item.to && item.to.length > 0) {
-      currentEmail.to = item.to.map(function(r) { return r.emailAddress || r.displayName; });
-    }
-    
-    if (item.cc && item.cc.length > 0) {
-      currentEmail.cc = item.cc.map(function(r) { return r.emailAddress || r.displayName; });
-    }
-    
-    item.body.getAsync(Office.CoercionType.Html, function(result) {
-      if (result.status === Office.AsyncResultStatus.Succeeded) {
-        currentEmail.body = result.value;
-      }
-    });
-    
-    if (item.attachments && item.attachments.length > 0) {
-      attachments = [];
-      for (var i = 0; i < item.attachments.length; i++) {
-        var att = item.attachments[i];
-        if (!att.isInline) {
-          attachments.push({
-            name: att.name,
-            contentType: att.contentType,
-            size: att.size,
-            id: att.id
-          });
-        }
-      }
-    }
-    
-    updateEmailPreview();
   } catch (error) {
     console.error('Error loading email:', error);
     showMessage('Could not load email: ' + error.message, 'error');
+  }
+}
+
+// Load email in READ mode (received emails)
+function loadReadEmail(item) {
+  currentEmail = {
+    subject: item.subject || '(No subject)',
+    from: '',
+    to: [],
+    cc: [],
+    date: item.dateTimeCreated ? new Date(item.dateTimeCreated).toLocaleString('en-GB') : '-',
+    dateISO: item.dateTimeCreated ? formatDateForDatabase(new Date(item.dateTimeCreated)) : formatDateForDatabase(new Date()),
+    body: '',
+    messageId: item.internetMessageId || item.itemId,
+    conversationId: item.conversationId || null
+  };
+  
+  if (item.from) {
+    currentEmail.from = item.from.emailAddress || item.from.displayName || '-';
+  }
+  
+  if (item.to && item.to.length > 0) {
+    currentEmail.to = item.to.map(function(r) { return r.emailAddress || r.displayName; });
+  }
+  
+  if (item.cc && item.cc.length > 0) {
+    currentEmail.cc = item.cc.map(function(r) { return r.emailAddress || r.displayName; });
+  }
+  
+  item.body.getAsync(Office.CoercionType.Html, function(result) {
+    if (result.status === Office.AsyncResultStatus.Succeeded) {
+      currentEmail.body = result.value;
+    }
+  });
+  
+  if (item.attachments && item.attachments.length > 0) {
+    attachments = [];
+    for (var i = 0; i < item.attachments.length; i++) {
+      var att = item.attachments[i];
+      if (!att.isInline) {
+        attachments.push({
+          name: att.name,
+          contentType: att.contentType,
+          size: att.size,
+          id: att.id
+        });
+      }
+    }
+  }
+  
+  updateEmailPreview();
+}
+
+// Load email in COMPOSE mode (drafting/replying)
+function loadComposeEmail(item) {
+  currentEmail = {
+    subject: '',
+    from: currentUser ? currentUser.email : '',
+    to: [],
+    cc: [],
+    date: new Date().toLocaleString('en-GB'),
+    dateISO: formatDateForDatabase(new Date()),
+    body: '',
+    messageId: 'compose-' + Date.now(),
+    conversationId: item.conversationId || null
+  };
+  
+  // Get subject asynchronously in compose mode
+  item.subject.getAsync(function(result) {
+    if (result.status === Office.AsyncResultStatus.Succeeded) {
+      currentEmail.subject = result.value || '(No subject)';
+      if (elements.emailSubject) {
+        elements.emailSubject.textContent = currentEmail.subject;
+      }
+    }
+  });
+  
+  // Get recipients asynchronously
+  item.to.getAsync(function(result) {
+    if (result.status === Office.AsyncResultStatus.Succeeded && result.value) {
+      currentEmail.to = result.value.map(function(r) { return r.emailAddress || r.displayName; });
+      if (elements.emailTo) {
+        elements.emailTo.textContent = currentEmail.to.join(', ') || '-';
+      }
+      // In compose mode, search based on recipient email
+      if (currentEmail.to.length > 0) {
+        searchByRecipientEmail(currentEmail.to[0]);
+      }
+    }
+  });
+  
+  // Get body
+  item.body.getAsync(Office.CoercionType.Html, function(result) {
+    if (result.status === Office.AsyncResultStatus.Succeeded) {
+      currentEmail.body = result.value;
+    }
+  });
+  
+  // Reset attachments for compose mode
+  attachments = [];
+  
+  updateEmailPreviewCompose();
+}
+
+// Search for lead/booking based on recipient email in compose mode
+function searchByRecipientEmail(recipientEmail) {
+  if (!recipientEmail || !currentUser) {
+    return;
+  }
+  
+  console.log('Searching for recipient email:', recipientEmail);
+  elements.searchResults.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+  
+  fetch(CONFIG.SUPABASE_URL + '/functions/v1/search-hub-entities', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ' + CONFIG.SUPABASE_ANON_KEY
+    },
+    body: JSON.stringify({ 
+      query: '', 
+      type: 'all',
+      email: currentUser.email,
+      password: currentUser.password,
+      mfaVerified: currentUser.mfaVerified || false,
+      senderEmail: recipientEmail // Use recipient as "sender" to find matching entity
+    })
+  })
+  .then(function(response) {
+    if (!response.ok) return null;
+    return response.json();
+  })
+  .then(function(data) {
+    if (data && data.suggestion) {
+      displaySuggestion(data.suggestion);
+    } else {
+      elements.searchResults.innerHTML = '<div class="no-results">Search for lead or booking</div>';
+    }
+  })
+  .catch(function(error) {
+    console.error('Recipient search error:', error);
+    elements.searchResults.innerHTML = '<div class="no-results">Search for lead or booking</div>';
+  });
+}
+
+// Update preview for compose mode
+function updateEmailPreviewCompose() {
+  elements.loading.classList.add('hidden');
+  elements.emailPreview.classList.remove('hidden');
+  elements.searchSection.classList.remove('hidden');
+  elements.notesSection.classList.remove('hidden');
+  
+  elements.emailSubject.textContent = currentEmail.subject || '(Loading...)';
+  elements.emailFrom.textContent = 'You';
+  elements.emailTo.textContent = currentEmail.to.join(', ') || '(Loading...)';
+  elements.emailDate.textContent = 'Draft';
+  
+  // Hide attachments section in compose mode
+  elements.attachmentsSection.classList.add('hidden');
+  
+  // Update the log button text for compose mode
+  if (elements.btnLogEmail) {
+    elements.btnLogEmail.textContent = 'Log when sent';
   }
 }
 
@@ -654,6 +785,14 @@ function updateActionSection() {
     var typeLabel = selectedEntity.type === 'leads' ? 'Lead' : 'Booking';
     elements.selectedEntity.textContent = 'Selected: ' + selectedEntity.name + ' (' + typeLabel + ')';
     elements.btnLogEmail.disabled = false;
+    
+    // Update button text based on mode
+    if (isComposeMode) {
+      elements.btnLogEmail.textContent = '📧 Log when sent';
+    } else {
+      elements.btnLogEmail.textContent = '📧 Log Email';
+    }
+    
     if (elements.btnAddTask) {
       elements.btnAddTask.disabled = false;
     }
@@ -1004,6 +1143,12 @@ function logEmail() {
     return;
   }
   
+  // Handle compose mode differently - mark for logging when sent
+  if (isComposeMode) {
+    handleComposeModelog();
+    return;
+  }
+  
   console.log('Logging email with credentials:', { 
     hasEmail: !!currentUser.email, 
     hasPassword: !!currentUser.password,
@@ -1091,9 +1236,109 @@ function logEmail() {
     })
     .finally(function() {
       elements.btnLogEmail.disabled = false;
-      elements.btnLogEmail.textContent = '📧 Log Email';
+      elements.btnLogEmail.textContent = isComposeMode ? 'Log when sent' : '📧 Log Email';
       elements.btnLogEmail.classList.remove('loading');
     });
+}
+
+// Handle logging in compose mode - captures email data to log when user sends
+function handleComposeModelog() {
+  var item = Office.context.mailbox.item;
+  
+  // First update currentEmail with latest compose content
+  elements.btnLogEmail.disabled = true;
+  elements.btnLogEmail.textContent = 'Preparing...';
+  
+  // Get subject
+  item.subject.getAsync(function(subjectResult) {
+    if (subjectResult.status === Office.AsyncResultStatus.Succeeded) {
+      currentEmail.subject = subjectResult.value || '(No subject)';
+    }
+    
+    // Get recipients
+    item.to.getAsync(function(toResult) {
+      if (toResult.status === Office.AsyncResultStatus.Succeeded && toResult.value) {
+        currentEmail.to = toResult.value.map(function(r) { return r.emailAddress || r.displayName; });
+      }
+      
+      // Get CC
+      item.cc.getAsync(function(ccResult) {
+        if (ccResult.status === Office.AsyncResultStatus.Succeeded && ccResult.value) {
+          currentEmail.cc = ccResult.value.map(function(r) { return r.emailAddress || r.displayName; });
+        }
+        
+        // Get body
+        item.body.getAsync(Office.CoercionType.Html, function(bodyResult) {
+          if (bodyResult.status === Office.AsyncResultStatus.Succeeded) {
+            currentEmail.body = bodyResult.value;
+          }
+          
+          // Now log the email immediately with current draft content
+          // Update timestamp to now since this is when they're logging it
+          currentEmail.dateISO = formatDateForDatabase(new Date());
+          currentEmail.from = currentUser.email;
+          
+          // Generate a unique message ID for compose mode
+          currentEmail.messageId = 'compose-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+          
+          // Now send to backend
+          var payload = {
+            email: currentUser.email,
+            password: currentUser.password,
+            mfaVerified: currentUser.mfaVerified || false,
+            subject: currentEmail.subject,
+            from_email: currentEmail.from,
+            to_emails: currentEmail.to,
+            cc_emails: currentEmail.cc,
+            html_body: currentEmail.body,
+            sent_at: currentEmail.dateISO,
+            message_id: currentEmail.messageId,
+            conversation_id: currentEmail.conversationId,
+            lead_id: selectedEntity.type === 'leads' ? selectedEntity.id : null,
+            tour_booking_id: selectedEntity.type === 'bookings' ? selectedEntity.id : null,
+            notes: (elements.notesInput.value.trim() || '') + ' [Logged during composition]',
+            attachments: []
+          };
+          
+          console.log('Logging compose email:', payload);
+          
+          fetch(CONFIG.SUPABASE_URL + '/functions/v1/log-outlook-email', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer ' + CONFIG.SUPABASE_ANON_KEY
+            },
+            body: JSON.stringify(payload)
+          })
+          .then(function(response) {
+            return response.json().then(function(data) {
+              if (!response.ok) {
+                if (response.status === 409 && data.duplicate) {
+                  throw new Error('This email is already logged on this case');
+                }
+                throw new Error(data.error || 'Could not log email');
+              }
+              return data;
+            });
+          })
+          .then(function(data) {
+            showMessage('Draft logged! Continue composing and send when ready.', 'success');
+            setTimeout(function() {
+              hideMessage();
+            }, 4000);
+          })
+          .catch(function(error) {
+            console.error('Log compose email error:', error);
+            showMessage('Error: ' + error.message, 'error');
+          })
+          .finally(function() {
+            elements.btnLogEmail.disabled = false;
+            elements.btnLogEmail.textContent = 'Log when sent';
+          });
+        });
+      });
+    });
+  });
 }
 
 function getAttachmentContent(att) {
