@@ -12,7 +12,7 @@
   <DefaultLocale>da-DK</DefaultLocale>
   <DisplayName DefaultValue="HUB Email Logger"/>
   <Description DefaultValue="Log emails til leads og bookings i HUB systemet"/>
-  <IconUrl DefaultValue="https://tembosafari.github.io/outlook/icon128.png"/>
+  <IconUrl DefaultValue="https://tembosafari.github.io/outlook/icon80.png"/>
   <HighResolutionIconUrl DefaultValue="https://tembosafari.github.io/outlook/icon128.png"/>
 
   <SupportUrl DefaultValue="https://tembotravel.dk"/>
