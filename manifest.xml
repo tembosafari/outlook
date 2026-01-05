@@ -92,7 +92,7 @@
       <bt:Images>
         <bt:Image id="Icon.16x16" DefaultValue="https://tembosafari.github.io/outlook/icon16.png"/>
         <bt:Image id="Icon.32x32" DefaultValue="https://tembosafari.github.io/outlook/icon32.png"/>
-        <bt:Image id="Icon.48x48" DefaultValue="https://tembosafari.github.io/outlook/icon32.png"/>
+        <bt:Image id="Icon.48x48" DefaultValue="https://tembosafari.github.io/outlook/icon48.png"/>
         <bt:Image id="Icon.80x80" DefaultValue="https://tembosafari.github.io/outlook/icon80.png"/>
       </bt:Images>
       <bt:Urls>
