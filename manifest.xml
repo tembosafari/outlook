@@ -12,9 +12,8 @@
   <DefaultLocale>da-DK</DefaultLocale>
   <DisplayName DefaultValue="HUB Email Logger"/>
   <Description DefaultValue="Log emails til leads og bookings i HUB systemet"/>
-  <!-- VIGTIGT: Erstat ~GITHUB_PAGES_URL~ med din GitHub Pages URL, f.eks. https://tembo-travel.github.io/hub-outlook-addin -->
-  <IconUrl DefaultValue="~GITHUB_PAGES_URL~/icon128.png"/>
-  <HighResolutionIconUrl DefaultValue="~GITHUB_PAGES_URL~/icon128.png"/>
+  <IconUrl DefaultValue="https://tembosafari.github.io/outlook/icon128.png"/>
+  <HighResolutionIconUrl DefaultValue="https://tembosafari.github.io/outlook/icon128.png"/>
 
   <SupportUrl DefaultValue="https://tembotravel.dk"/>
 
@@ -35,7 +34,7 @@
   <FormSettings>
     <Form xsi:type="ItemRead">
       <DesktopSettings>
-        <SourceLocation DefaultValue="~GITHUB_PAGES_URL~/taskpane.html"/>
+        <SourceLocation DefaultValue="https://tembosafari.github.io/outlook/taskpane.html"/>
         <RequestedHeight>450</RequestedHeight>
       </DesktopSettings>
     </Form>
@@ -79,6 +78,7 @@
                   </Icon>
                   <Action xsi:type="ShowTaskpane">
                     <SourceLocation resid="Taskpane.Url"/>
+                    <SupportsPinning>true</SupportsPinning>
                   </Action>
                 </Control>
               </Group>
@@ -90,14 +90,14 @@
 
     <Resources>
       <bt:Images>
-        <bt:Image id="Icon.16x16" DefaultValue="~GITHUB_PAGES_URL~/icon16.png"/>
-        <bt:Image id="Icon.32x32" DefaultValue="~GITHUB_PAGES_URL~/icon32.png"/>
-        <bt:Image id="Icon.48x48" DefaultValue="~GITHUB_PAGES_URL~/icon48.png"/>
-        <bt:Image id="Icon.80x80" DefaultValue="~GITHUB_PAGES_URL~/icon80.png"/>
+        <bt:Image id="Icon.16x16" DefaultValue="https://tembosafari.github.io/outlook/icon16.png"/>
+        <bt:Image id="Icon.32x32" DefaultValue="https://tembosafari.github.io/outlook/icon32.png"/>
+        <bt:Image id="Icon.48x48" DefaultValue="https://tembosafari.github.io/outlook/icon48.png"/>
+        <bt:Image id="Icon.80x80" DefaultValue="https://tembosafari.github.io/outlook/icon80.png"/>
       </bt:Images>
       <bt:Urls>
-        <bt:Url id="FunctionFile.Url" DefaultValue="~GITHUB_PAGES_URL~/function-file.html"/>
-        <bt:Url id="Taskpane.Url" DefaultValue="~GITHUB_PAGES_URL~/taskpane.html"/>
+        <bt:Url id="FunctionFile.Url" DefaultValue="https://tembosafari.github.io/outlook/function-file.html"/>
+        <bt:Url id="Taskpane.Url" DefaultValue="https://tembosafari.github.io/outlook/taskpane.html"/>
       </bt:Urls>
       <bt:ShortStrings>
         <bt:String id="GroupLabel" DefaultValue="HUB"/>
